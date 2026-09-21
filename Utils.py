@@ -2,6 +2,17 @@ from abc import ABC, abstractmethod
 import cv2
 import numpy as np
 
+class Vec2:
+    def __init__(self, x: float = 0, y: float = 0):
+        self.x = float(x)
+        self.y = float(y)
+
+class Color:
+    def __init__(self, r: int = 0, g: int = 0, b: int = 0):
+        self.r = int(r)
+        self.g = int(g)
+        self.b = int(b)
+
 class Surface:
     def __init__(self, width: int, height: int):
         self.width = width
@@ -14,8 +25,8 @@ class Surface:
     def Clear(self):
         self.canvas = np.zeros_like(self.canvas)
 
-    def PutPixel(self, row: int, col: int, color: tuple[int, int, int]):
-        self.canvas[row, col] = color
+    def PutPixel(self, x: int, y: int, color: Color):
+        self.canvas[int(y),int(x)] = (color.b, color.g, color.r)
 
     def GetFrameWidth(self): return self.width
     def GetFrameHeight(self): return self.height
@@ -94,8 +105,8 @@ class Graphics:
     def ClearFrame(self):
         self.surface.Clear()
 
-    def PutPixel(self, row: int, col: int, color: tuple[int, int, int]):
-        self.surface.PutPixel(row, col, color)
+    def PutPixel(self, x: int, y: int, color: Color):
+        self.surface.PutPixel(x, y, color)
 
     def Wait(self):
         status_code = cv2.waitKey(self.delay)
@@ -112,9 +123,13 @@ class Scene(ABC):
     def __init__(self):
         self.gfx: Graphics | None = None
 
+    @abstractmethod
+    def GraphicsSetupComplete(self): pass
+         
     def SetGraphics(self, graphics: Graphics):
         self.gfx = graphics
-         
+        self.GraphicsSetupComplete()
+
     @abstractmethod
     def Update(self, key: str, mouse_stat: tuple[tuple[int, int], bool, bool], dt: float): pass
 
@@ -122,11 +137,9 @@ class Scene(ABC):
     def Draw(self): pass
 
 class Game:
-    def __init__(self, scene: Scene):
+    def __init__(self, frame_width, frame_height, scene: Scene):
         self.main_loop_active = True
         window_name = "Canvas"
-        frame_width = 640
-        frame_height = 640
         fps = 60.0
         self.dt = 1.0 / fps
         time_per_frame_ms = self.dt * 1000
