@@ -131,13 +131,79 @@ class Graphics:
     def GetMouseState(self):
         return self.mouse.GetState()
 
-    def DrawLine(self, p0: Vec2, p1: Vec2, c: Color):
+    def DrawLineVec(self, p0: Vec2, p1: Vec2, color: Color):
+        self.DrawLineXY(p0.x, p0.y, p1.x, p1.y, color)
+
+    # Bresenham's Line Algorithm
+    def DrawLineXY(self, x1: float, y1: float, x2: float, y2: float, color: Color):
         x_max = self.GetFrameWidth() - 1
         y_max = self.GetFrameHeight() - 1
 
+        x1 = max(x1, 0)
+        x1 = min(x1, x_max)
+        x2 = max(x2, 0)
+        x2 = min(x2, x_max)
+
+        y1 = max(y1, 0)
+        y1 = min(y1, y_max)
+        y2 = max(y2, 0)
+        y2 = min(y2, y_max)
+
+        dx = x2 - x1
+        dy = y2 - y1
+
+        if dy == 0.0 and dx == 0.0:
+            self.PutPixel(int(x1), int(y1), color)
+        elif abs(dy) > abs(dx):
+            if (dy < 0.0):
+                x1, x2 = x2, x1
+                y1, y2 = y2, y1
+
+            m = dx / dy
+            lastIntY = 0
+            y = y1
+            x = x1
+            while y < y2:
+
+                lastIntY = int(y)
+                self.PutPixel(int(x), lastIntY, color)
+
+                x += m
+                y += 1
+                
+            if int(y2) > lastIntY:
+                self.PutPixel(int(x2), int(y2), color)
+        else:
+            if dx < 0.0:
+                x1, x2 = x2, x1
+                y1, y2 = y2, y1
+
+            m = dy / dx
+            lastIntX = 0
+            x = x1
+            y = y1
+            while x < x2:
+
+                lastIntX = int(x);
+                self.PutPixel(lastIntX, int(y), color);
+
+                y += m
+                x += 1
+            
+            if int(x2) > lastIntX:
+                self.PutPixel(int(x2), int(y2), color);
+
+    def DrawLineSimpleVec(self, p0: Vec2, p1: Vec2, color: Color):
+        x_max = self.GetFrameWidth() - 1
+        y_max = self.GetFrameHeight() - 1
+
+        p0.x = max(p0.x, 0)
+        p0.x = min(p0.x, x_max)
         p1.x = max(p1.x, 0)
         p1.x = min(p1.x, x_max)
 
+        p0.y = max(p0.y, 0)
+        p0.y = min(p0.y, y_max)
         p1.y = max(p1.y, 0)
         p1.y = min(p1.y, y_max)
 
@@ -153,7 +219,7 @@ class Graphics:
 
             for x in range(int(p0.x), int(p1.x)):
                 y = (m * x) + b
-                self.PutPixel(x, y, c)
+                self.PutPixel(x, y, color)
 
         elif p0.y != p1.y:
             if(p0.y > p1.y):
@@ -164,7 +230,7 @@ class Graphics:
 
             for y in range(int(p0.y), int(p1.y)):
                 x = (m * y) + b
-                self.PutPixel(x, y, c)
+                self.PutPixel(x, y, color)
 
 class Scene(ABC):
     def __init__(self):

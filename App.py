@@ -25,7 +25,7 @@ class SimpleScene(Scene):
     
     def Draw(self):
         if self.m_lb:
-            self.gfx.DrawLine(self.p0, self.p1, Color(255, 255, 255))
+            self.gfx.DrawLineVec(self.p0, self.p1, Color(255, 255, 255))
 
 if '__main__' == __name__:
 
