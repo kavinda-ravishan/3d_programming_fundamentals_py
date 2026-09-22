@@ -7,11 +7,23 @@ class Vec2:
         self.x = float(x)
         self.y = float(y)
 
+    def __setattr__(self, name, value):
+        if name in {"x", "y"}:
+            super().__setattr__(name, float(value))
+        else:
+            super().__setattr__(name, value)
+
 class Color:
     def __init__(self, r: int = 0, g: int = 0, b: int = 0):
         self.r = int(r)
         self.g = int(g)
         self.b = int(b)
+
+    def __setattr__(self, name, value):
+        if name in {"r", "g", "b"}:
+            super().__setattr__(name, int(value))
+        else:
+            super().__setattr__(name, value)
 
 class Surface:
     def __init__(self, width: int, height: int):
@@ -118,6 +130,41 @@ class Graphics:
 
     def GetMouseState(self):
         return self.mouse.GetState()
+
+    def DrawLine(self, p0: Vec2, p1: Vec2, c: Color):
+        x_max = self.GetFrameWidth() - 1
+        y_max = self.GetFrameHeight() - 1
+
+        p1.x = max(p1.x, 0)
+        p1.x = min(p1.x, x_max)
+
+        p1.y = max(p1.y, 0)
+        p1.y = min(p1.y, y_max)
+
+        m = 0.0
+        if p0.x != p1.x:
+            m = (p1.y - p0.y) / (p1.x - p0.x)
+
+        if p0.x != p1.x and abs(m) <= 1.0:
+            if(p0.x > p1.x):
+                p1, p0 = p0, p1
+
+            b = p0.y - m * p0.x
+
+            for x in range(int(p0.x), int(p1.x)):
+                y = (m * x) + b
+                self.PutPixel(x, y, c)
+
+        elif p0.y != p1.y:
+            if(p0.y > p1.y):
+                p1, p0 = p0, p1
+
+            m = (p1.x - p0.x) / (p1.y - p0.y)
+            b = p0.x - m * p0.y
+
+            for y in range(int(p0.y), int(p1.y)):
+                x = (m * y) + b
+                self.PutPixel(x, y, c)
 
 class Scene(ABC):
     def __init__(self):
