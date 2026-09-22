@@ -259,6 +259,10 @@ class CoordinateTransformer:
     def DrawClosePolyline(self, verts: list[Vec2],  color: Color):
         offset = Vec2(self.gfx.GetFrameWidth() / 2, self.gfx.GetFrameHeight() / 2)
         for i in range(len(verts)):
+            # Convert vertices from mathematical coordinates to screen coordinates:
+            # - In screen space, the origin (0,0) is at the top-left corner.
+            # - The +Y axis points downward, so we flip the Y values.
+            # - Then we offset all points so that the origin is centered in the frame.
             verts[i].y *= -1
             verts[i] += offset
         self.gfx.DrawClosePolyline(verts, color)
