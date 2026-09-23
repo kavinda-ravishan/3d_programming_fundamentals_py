@@ -16,8 +16,12 @@ class Vec2:
     def __add__(self, other):
         return Vec2(self.x + other.x, self.y + other.y)
 
+    def __sub__(self, other):
+        return Vec2(self.x - other.x, self.y - other.y)
+
     def __mul__(self, scalar: float):
         return Vec2(self.x * scalar, self.y * scalar)
+
 
 class Color:
     def __init__(self, r: int = 0, g: int = 0, b: int = 0):
@@ -123,9 +127,6 @@ class Graphics:
     def __del__(self):
         cv2.destroyAllWindows()
 
-    def GetFrameWidth(self): return self.surface.GetFrameWidth()
-    def GetFrameHeight(self): return self.surface.GetFrameHeight()
-
     def BeginFrame(self):
         self.ClearFrame()
 
@@ -201,8 +202,8 @@ class Graphics:
     def DrawLineSimpleVec(self, p0: Vec2, p1: Vec2, color: Color, clip: bool = False):
 
         if clip:
-            x_max = self.GetFrameWidth() - 1
-            y_max = self.GetFrameHeight() - 1
+            x_max = self.surface.GetFrameWidth() - 1
+            y_max = self.surface.GetFrameHeight() - 1
 
             p0.x = max(p0.x, 0)
             p0.x = min(p0.x, x_max)
@@ -242,10 +243,7 @@ class Graphics:
     def DrawClosePolyline(self, verts: list[Vec2],  color: Color):
 
         for i in range(0, len(verts) - 1):
-            p0 = verts[i]
-            p1 = verts[i+1]
-
-            self.DrawLineVec(p0, p1, color)
+            self.DrawLineVec(verts[i], verts[i+1], color)
 
         self.DrawLineVec(verts[0], verts[-1], color)
 
@@ -253,11 +251,8 @@ class CoordinateTransformer:
     def __init__(self, graphics: Graphics):
         self.gfx = graphics
 
-    def GetFrameWidth(self): return self.gfx.GetFrameWidth()
-    def GetFrameHeight(self): return self.gfx.GetFrameHeight()
-
     def DrawClosePolyline(self, verts: list[Vec2],  color: Color):
-        offset = Vec2(self.gfx.GetFrameWidth() / 2, self.gfx.GetFrameHeight() / 2)
+        offset = Vec2(self.gfx.surface.GetFrameWidth() / 2, self.gfx.surface.GetFrameHeight() / 2)
         for i in range(len(verts)):
             # Convert vertices from mathematical coordinates to screen coordinates:
             # - In screen space, the origin (0,0) is at the top-left corner.
@@ -267,15 +262,35 @@ class CoordinateTransformer:
             verts[i] += offset
         self.gfx.DrawClosePolyline(verts, color)
 
+class Camera:
+    def __init__(self, coordinate_transformer: CoordinateTransformer):
+        self.pos = Vec2()
+        self.scale = 1.0
+        self.ct = coordinate_transformer
+
+    def GetPos(self): return self.pos
+
+    def MoveBy(self, offset: Vec2): self.pos += offset
+    def MoveTo(self, pos_in: Vec2): self.pos = pos_in
+
+    def Zoom(self, val: float):
+        self.scale *= val
+
+    def DrawClosePolyline(self, verts: list[Vec2],  color: Color):
+        for i in range(len(verts)):
+            verts[i] -= self.pos
+            verts[i] *= self.scale
+        self.ct.DrawClosePolyline(verts, color)
+
 class Scene(ABC):
     def __init__(self):
-        self.ct: CoordinateTransformer | None = None
+        self.camera: Camera | None = None
 
     @abstractmethod
     def CompsSetupComplete(self): pass
          
-    def SetComps(self, coordinate_transformer: CoordinateTransformer):
-        self.ct = coordinate_transformer
+    def SetComps(self, camera: Camera):
+        self.camera = camera
         self.CompsSetupComplete()
 
     @abstractmethod
@@ -285,18 +300,19 @@ class Scene(ABC):
     def Draw(self): pass
 
 class Game:
-    def __init__(self, frame_width, frame_height, fps, scenes : list[Scene]):
+    def __init__(self, frame_width: int, frame_height: int, fps: float, scenes : list[Scene]):
         self.main_loop_active = True
         window_name = "Canvas"
         self.dt = 1.0 / fps
         time_per_frame_ms = self.dt * 1000
         self.gfx = Graphics(window_name, frame_width, frame_height, int(time_per_frame_ms))
         self.ct = CoordinateTransformer(self.gfx)
+        self.camera = Camera(self.ct)
 
         self.c_scene_id = 0
         self.scenes = scenes
         for scene in scenes:
-            scene.SetComps(self.ct)
+            scene.SetComps(self.camera)
 
     def UpdateModel(self):
         key = self.gfx.GetKey()
