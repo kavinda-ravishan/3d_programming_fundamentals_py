@@ -1,6 +1,6 @@
 from math import cos, sin
 from copy import deepcopy
-from Utils import Vec2, Color, Game, Scene
+from Utils import Vec2, Color, Drawable, Game, Scene
 
 class Star:
     @staticmethod
@@ -17,10 +17,11 @@ class Star:
         return star
 
 class Entity:
-    def __init__(self, model: list[Vec2], position: Vec2):
+    def __init__(self, model: list[Vec2], position: Vec2, color: Color = Color.Yellow):
         self.model = model
         self.pos = position
         self.scale = 1.0
+        self.color = color
 
     def TranslateBy(self, offset: Vec2):
         self.pos += offset
@@ -28,13 +29,11 @@ class Entity:
     def ScaleBy(self, val: float):
         self.scale *= val
 
-    def GetPolyLine(self) -> list[Vec2]:
-        poly = deepcopy(self.model)
-        for i in range(len(poly)):
-            poly[i] *= self.scale
-            poly[i] += self.pos
-
-        return poly
+    def GetDrawable(self):
+        drawable = Drawable(deepcopy(self.model), self.color)
+        drawable.Scale(self.scale)
+        drawable.Translate(self.pos)
+        return drawable
 
 class PolylinesScene(Scene):
     def __init__(self):
@@ -69,17 +68,13 @@ class PolylinesScene(Scene):
     
     def Draw(self):
         for entity in self.entities:
-            self.camera.DrawClosePolyline(entity.GetPolyLine(), Color.Yellow)
+            self.camera.Draw(entity.GetDrawable())
 
 if '__main__' == __name__:
+    frame_width = 800
+    frame_height = 800
+    fps = 30.0
 
+    game = Game(frame_width, frame_height, fps, [PolylinesScene()])
+    game.Go()
 
-    try:
-        frame_width = 800
-        frame_height = 800
-        fps = 30.0
-
-        game = Game(frame_width, frame_height, fps, [PolylinesScene()])
-        game.Go()
-    except Exception as ex:
-        print(f'Exeption : {ex}')

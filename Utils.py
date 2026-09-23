@@ -22,6 +22,8 @@ class Vec2:
     def __mul__(self, scalar: float):
         return Vec2(self.x * scalar, self.y * scalar)
 
+    def __neg__(self):
+        return Vec2(-self.x, -self.y)
 
 class Color:
     def __init__(self, r: int = 0, g: int = 0, b: int = 0):
@@ -247,20 +249,49 @@ class Graphics:
 
         self.DrawLineVec(verts[0], verts[-1], color)
 
+class Drawable:
+    def __init__(self, model: list[Vec2], color: Color):
+        self.model: list[Vec2] = model
+        self.translation: Vec2 = Vec2(0.0, 0.0)
+        self.scale_x: float = 1.0
+        self.scale_y: float = 1.0
+        self.color: Color = color
+
+    def Translate(self, translation_in: Vec2):
+        self.translation += translation_in
+
+    def Scale(self, scale_in: float):
+        self.scale_x *= scale_in
+        self.scale_y *= scale_in
+        self.translation *= scale_in
+
+    def ScaleIndependent(self, scale_in_x: float, scale_in_y: float):
+        self.scale_x *= scale_in_x
+        self.scale_y *= scale_in_y
+        self.translation.x *= scale_in_x
+        self.translation.y *= scale_in_y
+
+    def Render(self, gfx: Graphics):
+        for i in range(len(self.model)):
+            self.model[i].x *= self.scale_x
+            self.model[i].y *= self.scale_y
+            self.model[i] += self.translation
+
+        gfx.DrawClosePolyline(self.model, self.color)
+
 class CoordinateTransformer:
     def __init__(self, graphics: Graphics):
         self.gfx = graphics
 
-    def DrawClosePolyline(self, verts: list[Vec2],  color: Color):
+    def Draw(self, drawable: Drawable):
         offset = Vec2(self.gfx.surface.GetFrameWidth() / 2, self.gfx.surface.GetFrameHeight() / 2)
-        for i in range(len(verts)):
-            # Convert vertices from mathematical coordinates to screen coordinates:
-            # - In screen space, the origin (0,0) is at the top-left corner.
-            # - The +Y axis points downward, so we flip the Y values.
-            # - Then we offset all points so that the origin is centered in the frame.
-            verts[i].y *= -1
-            verts[i] += offset
-        self.gfx.DrawClosePolyline(verts, color)
+        # Convert vertices from mathematical coordinates to screen coordinates:
+        # - In screen space, the origin (0,0) is at the top-left corner.
+        # - The +Y axis points downward, so we flip the Y values.
+        # - Then we offset all points so that the origin is centered in the frame.
+        drawable.ScaleIndependent(1.0, -1.0)
+        drawable.Translate(offset)
+        drawable.Render(self.gfx)
 
 class Camera:
     def __init__(self, coordinate_transformer: CoordinateTransformer):
@@ -276,11 +307,10 @@ class Camera:
     def Zoom(self, val: float):
         self.scale *= val
 
-    def DrawClosePolyline(self, verts: list[Vec2],  color: Color):
-        for i in range(len(verts)):
-            verts[i] -= self.pos
-            verts[i] *= self.scale
-        self.ct.DrawClosePolyline(verts, color)
+    def Draw(self, drawable: Drawable):
+        drawable.Translate(-self.pos)
+        drawable.Scale(self.scale)
+        self.ct.Draw(drawable)
 
 class Scene(ABC):
     def __init__(self):
