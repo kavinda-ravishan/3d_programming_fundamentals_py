@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from copy import deepcopy
 import cv2
 import numpy as np
 from math import sqrt
@@ -421,3 +422,26 @@ class Game:
             self.UpdateModel()
 
         print("Game loop ended")
+
+class Entity(ABC):
+    def __init__(self, model: list[Vec2], bbox: Rect, position: Vec2, color: Color):
+        self.model = model
+        self.bbox = bbox
+        self.pos = position
+        self.scale = 1.0
+        self.color = color
+
+    def TranslateBy(self, offset: Vec2):
+        self.pos += offset
+
+    def ScaleBy(self, val: float):
+        self.scale *= val
+
+    def GetBoundingBox(self):
+        return self.bbox
+
+    def GetDrawable(self):
+        drawable = Drawable(deepcopy(self.model), self.color)
+        drawable.Scale(self.scale)
+        drawable.Translate(self.pos)
+        return drawable
