@@ -10,7 +10,7 @@ class Star:
         self.n_flares = int(n_flares)
         self.pos = pos
 
-    def GetRadius(self): return self.outer_radius
+    def GetRadius(self): return max(self.outer_radius, self.inner_radius)
     def GetPos(self): return self.pos
 
     def Make(self):
@@ -26,19 +26,17 @@ class Star:
         return star
 
     def GetBoundingBox(self) -> Rect:
-        wh = self.outer_radius * 2
+        wh = max(self.outer_radius, self.inner_radius) * 2
         return Rect.FromWH(self.pos, wh, wh)
 
     @staticmethod
     def GetRandParams() -> tuple[int, int, int]:
-        inner_rad_min = 30
-        inner_rad_max = 70
-        outer_rad_min = 100
-        outer_rad_max = 200
+        rad_min = 10
+        rad_max = 100
         n_flares_min = 2
         n_flares_max = 8
 
-        return (randint(inner_rad_min, inner_rad_max), randint(outer_rad_min, outer_rad_max), randint(n_flares_min, n_flares_max))
+        return (randint(rad_min, rad_max), randint(rad_min, rad_max), randint(n_flares_min, n_flares_max))
 
     @staticmethod
     def GetRandPos() -> Vec2:
@@ -119,13 +117,9 @@ class PolylinesScene(Scene):
     
     def Draw(self):
         vp_rect = self.camera.GetViewportRect()
-        draw_count = 0
         for entity in self.entities:
-            if entity.GetBBox().Intersects(vp_rect):
+            if vp_rect.Intersects(entity.GetBBox()):
                 self.camera.Draw(entity.GetDrawable())
-                draw_count += 1
-
-        print(draw_count, '/', len(self.entities))
 
 if '__main__' == __name__:
     frame_width = 800
