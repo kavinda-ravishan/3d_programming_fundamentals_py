@@ -73,9 +73,14 @@ class Entity:
 class PolylinesScene(Scene):
     def __init__(self):
         super().__init__()
-        self.entities: list[Entity] = []
-        stars: list[Star] = []
+        self.entities = PolylinesScene.GenerateEntities()
 
+    def CompsSetupComplete(self): ...
+
+    @staticmethod
+    def GenerateEntities():
+        entities: list[Entity] = []
+        stars: list[Star] = []
         n_max_stars = 100
         max_reject_count = 100
         reject_count = 0
@@ -95,9 +100,9 @@ class PolylinesScene(Scene):
                 break
 
         for star in stars:
-            self.entities.append(Entity(star.Make(), star.GetBoundingBox(), star.GetPos()))
+            entities.append(Entity(star.Make(), star.GetBoundingBox(), star.GetPos()))
 
-    def CompsSetupComplete(self): ...
+        return entities
 
     def Update(self, key: str, mouse_stat: tuple[tuple[int, int], bool, bool], dt: float):
         m_x = mouse_stat[0][0]
