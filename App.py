@@ -1,24 +1,58 @@
 from math import cos, sin
 from copy import deepcopy
-from Utils import Vec2, Color, Drawable, Game, Scene
+from random import randint
+from Utils import Vec2, Rect, Color, Drawable, Game, Scene
 
 class Star:
-    @staticmethod
-    def Make(outer_radius: float, inner_radius: float, n_flares: int):
-        star: list[Vec2] = []
-        d_theta = (2.0 * 3.14159) / (n_flares * 2)
+    def __init__(self, inner_radius: float, outer_radius: float, n_flares: int, pos: Vec2):
+        self.inner_radius = float(inner_radius)
+        self.outer_radius = float(outer_radius)
+        self.n_flares = int(n_flares)
+        self.pos = pos
 
-        for i in range(n_flares * 2):
-            rad = outer_radius if (i % 2 == 0) else inner_radius
+    def GetRadius(self): return self.outer_radius
+    def GetPos(self): return self.pos
+
+    def Make(self):
+        star: list[Vec2] = []
+        d_theta = (2.0 * 3.14159) / (self.n_flares * 2)
+
+        for i in range(self.n_flares * 2):
+            rad = self.outer_radius if (i % 2 == 0) else self.inner_radius
             star.append(
                 Vec2(rad * cos(i * d_theta),  rad * sin(i * d_theta))
             )
 
         return star
 
+    def GetBoundingBox(self) -> Rect:
+        wh = self.outer_radius * 2
+        return Rect.FromWH(self.pos, wh, wh)
+
+    @staticmethod
+    def GetRandParams() -> tuple[int, int, int]:
+        inner_rad_min = 30
+        inner_rad_max = 70
+        outer_rad_min = 100
+        outer_rad_max = 200
+        n_flares_min = 2
+        n_flares_max = 8
+
+        return (randint(inner_rad_min, inner_rad_max), randint(outer_rad_min, outer_rad_max), randint(n_flares_min, n_flares_max))
+
+    @staticmethod
+    def GetRandPos() -> Vec2:
+        x_min = -1000
+        x_max = 1000
+        y_min = -1000
+        y_max = 1000
+
+        return Vec2(randint(x_min, x_max), randint(y_min, y_max))
+
 class Entity:
-    def __init__(self, model: list[Vec2], position: Vec2, color: Color = Color.Yellow):
+    def __init__(self, model: list[Vec2], bbox: Rect, position: Vec2, color: Color = Color.Yellow):
         self.model = model
+        self.bbox = bbox
         self.pos = position
         self.scale = 1.0
         self.color = color
@@ -29,6 +63,9 @@ class Entity:
     def ScaleBy(self, val: float):
         self.scale *= val
 
+    def GetBBox(self):
+        return self.bbox
+
     def GetDrawable(self):
         drawable = Drawable(deepcopy(self.model), self.color)
         drawable.Scale(self.scale)
@@ -38,17 +75,30 @@ class Entity:
 class PolylinesScene(Scene):
     def __init__(self):
         super().__init__()
+        self.entities: list[Entity] = []
+        stars: list[Star] = []
 
-        self.entities = [
-            Entity(Star.Make(100.0, 50.0, 5), Vec2(460.0, 0.0)),
-            Entity(Star.Make(150.0, 50.0, 5), Vec2(150.0, 300.0)),
-            Entity(Star.Make(100.0, 50.0, 5), Vec2(250.0, -200.0)),
-            Entity(Star.Make(150.0, 50.0, 5), Vec2(-250.0, 200.0)),
-            Entity(Star.Make(100.0, 50.0, 8), Vec2(0.0, 0.0)),
-            Entity(Star.Make(200.0, 50.0, 5), Vec2(-150.0, -300.0)),
-            Entity(Star.Make(100.0, 50.0, 5), Vec2(400.0, 300.0))
-        ]
-        
+        n_max_stars = 100
+        max_reject_count = 100
+        reject_count = 0
+        while n_max_stars > len(stars):
+            new_star = Star(*Star.GetRandParams(), Star.GetRandPos())
+
+            rejected = False
+            for old_star in stars:
+                if (old_star.GetPos() - new_star.GetPos()).Len() < (old_star.GetRadius() + new_star.GetRadius()):
+                    reject_count += 1
+                    rejected = True
+
+            if not rejected:
+                stars.append(new_star)
+                reject_count = 0
+            elif reject_count > max_reject_count:
+                break
+
+        for star in stars:
+            self.entities.append(Entity(star.Make(), star.GetBoundingBox(), star.GetPos()))
+
     def CompsSetupComplete(self): ...
 
     def Update(self, key: str, mouse_stat: tuple[tuple[int, int], bool, bool], dt: float):
@@ -68,8 +118,14 @@ class PolylinesScene(Scene):
         elif 'e' == key: self.camera.Zoom(1.05)
     
     def Draw(self):
+        vp_rect = self.camera.GetViewportRect()
+        draw_count = 0
         for entity in self.entities:
-            self.camera.Draw(entity.GetDrawable())
+            if entity.GetBBox().Intersects(vp_rect):
+                self.camera.Draw(entity.GetDrawable())
+                draw_count += 1
+
+        print(draw_count, '/', len(self.entities))
 
 if '__main__' == __name__:
     frame_width = 800

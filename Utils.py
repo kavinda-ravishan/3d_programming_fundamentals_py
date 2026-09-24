@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 import cv2
 import numpy as np
+from math import sqrt
 
 class Vec2:
     def __init__(self, x: float = 0, y: float = 0):
@@ -24,6 +25,37 @@ class Vec2:
 
     def __neg__(self):
         return Vec2(-self.x, -self.y)
+
+    def Len(self):
+        return sqrt((self.x * self.x) + (self.y * self.y))
+
+class Rect:
+    def __init__(self, left: float, right: float, top: float, bottom: float):
+        self.left: float = float(left)
+        self.right: float = float(right)
+        self.top: float = float(top)
+        self.bottom: float = float(bottom)
+
+    @classmethod
+    def FromVec2(cls, top_left: Vec2, bottom_right: Vec2):
+        return cls(top_left.x, bottom_right.x, top_left.y, bottom_right.y)
+
+    @classmethod
+    def FromWH(cls, middle_point: Vec2, width: float, height: float):
+        width_div_2 = width/2
+        height_div_2 = height/2
+        return cls(
+            middle_point.x - width_div_2, 
+            middle_point.x + width_div_2, 
+            middle_point.y + height_div_2, 
+            middle_point.y - height_div_2
+        )
+
+    def Intersects(self, other: "Rect"):
+        return not (self.right < other.left
+                    or self.left > other.right
+                    or self.top < other.bottom
+                    or self.bottom > other.top)
 
 class Color:
     def __init__(self, r: int = 0, g: int = 0, b: int = 0):
@@ -142,8 +174,7 @@ class Graphics:
         self.surface.PutPixel(x, y, color)
 
     def Wait(self):
-        # status_code = cv2.waitKey(self.delay)
-        status_code = cv2.waitKey(0)
+        status_code = cv2.waitKey(self.delay)
         key_code = status_code & 0xFF
         self.keyboard._Callback(key_code)
 
@@ -317,6 +348,12 @@ class Camera:
         self.scale *= val
 
     def GetZoomLevel(self): return self.scale
+
+    def GetViewportRect(self) -> Rect:
+        zoom_factor = 1.0 / self.scale
+        viewport_w = self.ct.gfx.surface.GetFrameWidth() * zoom_factor
+        viewport_h = self.ct.gfx.surface.GetFrameHeight() * zoom_factor
+        return Rect.FromWH(self.pos, viewport_w, viewport_h)
 
     def Draw(self, drawable: Drawable):
         drawable.Translate(-self.pos)
