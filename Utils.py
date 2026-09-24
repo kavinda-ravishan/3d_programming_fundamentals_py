@@ -142,7 +142,8 @@ class Graphics:
         self.surface.PutPixel(x, y, color)
 
     def Wait(self):
-        status_code = cv2.waitKey(self.delay)
+        # status_code = cv2.waitKey(self.delay)
+        status_code = cv2.waitKey(0)
         key_code = status_code & 0xFF
         self.keyboard._Callback(key_code)
 
@@ -151,6 +152,14 @@ class Graphics:
 
     def GetMouseState(self):
         return self.mouse.GetState()
+
+    def VertexInScreen(self, vertex: Vec2):
+        return (
+            vertex.x > 0 and 
+            vertex.y > 0 and 
+            vertex.x < self.surface.GetFrameHeight() and 
+            vertex.y < self.surface.GetFrameWidth()
+        )
 
     def DrawLineVec(self, p0: Vec2, p1: Vec2, color: Color):
         self.DrawLineXY(p0.x, p0.y, p1.x, p1.y, color)
@@ -243,11 +252,11 @@ class Graphics:
                 self.PutPixel(x, y, color)
 
     def DrawClosePolyline(self, verts: list[Vec2],  color: Color):
-
-        for i in range(0, len(verts) - 1):
-            self.DrawLineVec(verts[i], verts[i+1], color)
-
-        self.DrawLineVec(verts[0], verts[-1], color)
+        for i in range(len(verts)):
+            v_0 = verts[i]
+            v_1 = verts[(i + 1)%len(verts)]
+            if(self.VertexInScreen(v_0) or self.VertexInScreen(v_1)):
+                self.DrawLineVec(v_0, v_1, color)
 
 class Drawable:
     def __init__(self, model: list[Vec2], color: Color):
@@ -306,6 +315,8 @@ class Camera:
 
     def Zoom(self, val: float):
         self.scale *= val
+
+    def GetZoomLevel(self): return self.scale
 
     def Draw(self, drawable: Drawable):
         drawable.Translate(-self.pos)

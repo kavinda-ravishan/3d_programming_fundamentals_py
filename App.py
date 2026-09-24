@@ -57,7 +57,8 @@ class PolylinesScene(Scene):
         m_lb = mouse_stat[1]
         m_rb = mouse_stat[2]
 
-        speed = 20.0
+        speed = 10.0
+
         if 'w' == key: self.camera.MoveBy(Vec2(0.0, speed))
         elif 's' == key: self.camera.MoveBy(Vec2(0.0, -speed))
         elif 'd' == key: self.camera.MoveBy(Vec2(speed, 0.0))
@@ -73,7 +74,7 @@ class PolylinesScene(Scene):
 if '__main__' == __name__:
     frame_width = 800
     frame_height = 800
-    fps = 30.0
+    fps = 60.0
 
     game = Game(frame_width, frame_height, fps, [PolylinesScene()])
     game.Go()
