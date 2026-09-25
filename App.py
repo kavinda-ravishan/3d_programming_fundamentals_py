@@ -8,7 +8,6 @@ class Ball(Entity):
         super().__init__(Star.Make(radius, radius, 8), Ball.BoundingBox(), position, color)
         self.radius = radius
         self.velocity = velocity
-        self.collidable = True
 
     def Update(self, dt: float):
         self.TranslateBy(self.velocity * dt)
@@ -21,10 +20,6 @@ class Ball(Entity):
 
     def SetVelocity(self, velocity: Vec2):
         self.velocity = velocity
-
-    def IsCollidable(self): return self.collidable
-
-    def DisableCollidable(self): self.collidable = False
 
     @staticmethod
     def BoundingBox() -> Rect | None:
@@ -121,12 +116,14 @@ class PlankScene(Scene):
         elif 'q' == key: self.camera.Zoom(0.95)
         elif 'e' == key: self.camera.Zoom(1.05)
         
-        elif 'r' == key: self.plank.MoveFreeY(2.0)
-        elif 'f' == key: self.plank.MoveFreeY(-2.0)
+        elif 'r' == key: self.plank.MoveFreeY( 5.0)
+        elif 'f' == key: self.plank.MoveFreeY(-5.0)
 
         if m_lb: self.balls.SpawnNewBall()
 
-        line_points = self.plank.GetLinePoints()
+        plank_points = self.plank.GetLinePoints()
+        plank_p0 = plank_points[0]
+        plank_p1 = plank_points[1]
 
         for i in range(len(self.balls.GetBalls()) - 1, -1, -1):
 
@@ -134,13 +131,31 @@ class PlankScene(Scene):
                 continue
 
             ball = self.balls.GetBalls()[i]
-            ball_point = self.balls.GetBalls()[i].GetPosition()
-            if(DistancePointLine(line_points[0], line_points[1], ball_point) < ball.GetRadius() and ball.IsCollidable()):
-                w = (line_points[1] - line_points[0]).Normalize()
-                v = ball.GetVelocity()
-                new_velocity = (w * (v*w) * 2.0) - v
-                self.balls.GetBalls()[i].SetVelocity(new_velocity)
-                self.balls.GetBalls()[i].DisableCollidable()
+            ball_position = self.balls.GetBalls()[i].GetPosition()
+
+            dy = plank_p1.y - plank_p0.y
+            dx = plank_p1.x - plank_p0.x
+
+            plank_normal = Vec2()
+            if dy == 0.0:
+                plank_normal = Vec2(0.0, 1.0 if ball_position.y > plank_p0.y else -1.0)
+            elif dx == 0.0:
+                plank_normal = Vec2(1.0 if ball_position.x > plank_p0.x else -1.0, 0.0)
+            else:
+                m = dy / dx
+                w = -(dx / dy)
+                b = plank_p0.y - (m * plank_p0.x)
+                p = ball_position.y - (w * ball_position.x)
+                x = (p-b)/(m-w)
+                y = (m * x) + b
+                plank_normal = ball_position - Vec2(x, y)
+
+            v = ball.GetVelocity()
+            if plank_normal * v < 0.0:
+                if(DistancePointLine(plank_p0, plank_p1, ball_position) < ball.GetRadius()):
+                    w = (plank_p1 - plank_p0).Normalize()
+                    new_velocity = (w * (v*w) * 2.0) - v
+                    self.balls.GetBalls()[i].SetVelocity(new_velocity)
 
             self.balls.GetBalls()[i].Update(dt)
 
