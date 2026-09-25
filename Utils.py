@@ -1,3 +1,4 @@
+from __future__ import annotations
 from abc import ABC, abstractmethod
 from copy import deepcopy
 import cv2
@@ -15,20 +16,48 @@ class Vec2:
         else:
             super().__setattr__(name, value)
 
-    def __add__(self, other):
+    def __add__(self, other: "Vec2"):
         return Vec2(self.x + other.x, self.y + other.y)
 
-    def __sub__(self, other):
+    def __sub__(self, other: "Vec2"):
         return Vec2(self.x - other.x, self.y - other.y)
-
-    def __mul__(self, scalar: float):
-        return Vec2(self.x * scalar, self.y * scalar)
 
     def __neg__(self):
         return Vec2(-self.x, -self.y)
 
+    def __mul__(self, other):
+        if isinstance(other, (int, float)):  # scalar-vec multiplication
+            return Vec2(self.x * other, self.y * other)
+        elif isinstance(other, Vec2):        # vec-vec dot product
+            return (self.x * other.x) + (self.y * other.y)
+        else:
+            return NotImplemented
+
+    def __rmul__(self, other):
+        if isinstance(other, (int, float)):
+            return Vec2(self.x * other, self.y * other)
+        else:
+            return NotImplemented
+
+    def __truediv__(self, other):
+        if isinstance(other, (int, float)):  # scalar division
+            return Vec2(self.x / other, self.y / other)
+        elif isinstance(other, Vec2):        # element-wise division
+            return Vec2(self.x / other.x, self.y / other.y)
+        else:
+            return NotImplemented
+
     def Len(self):
         return sqrt((self.x * self.x) + (self.y * self.y))
+
+    def Normalize(self):
+        length = self.Len()
+        if length == 0:
+            return Vec2(0, 0)  # avoid division by zero
+        return Vec2(self.x / length, self.y / length)
+
+    def __repr__(self):
+        return f"Vec2({self.x:.3f}, {self.y:.3f})"
 
 class Rect:
     def __init__(self, left: float, right: float, top: float, bottom: float):
@@ -99,6 +128,13 @@ class Surface:
 
     def GetFrameWidth(self): return self.width
     def GetFrameHeight(self): return self.height
+
+def DistancePointLine(l0: Vec2, l1: Vec2, p: Vec2):
+    a = l0.y - l1.y
+    b = l1.x - l0.x
+    c = (l0.x * l1.y) - (l1.x * l0.y)
+
+    return abs( (a * p.x) + (b * p.y) + c ) / sqrt( (a * a) + (b * b) )
 
 class Mouse:
     def __init__(self):
@@ -424,15 +460,21 @@ class Game:
         print("Game loop ended")
 
 class Entity(ABC):
-    def __init__(self, model: list[Vec2], bbox: Rect, position: Vec2, color: Color):
+    def __init__(self, model: list[Vec2], bbox: Rect | None, position: Vec2, color: Color):
         self.model = model
-        self.bbox = bbox
-        self.pos = position
+        self.bbox: Rect | None = bbox
+        self.position = position
         self.scale = 1.0
         self.color = color
 
+    def GetPosition(self):
+        return self.position
+
+    def UpdateModel(self, model: list[Vec2]):
+        self.model = model
+
     def TranslateBy(self, offset: Vec2):
-        self.pos += offset
+        self.position += offset
 
     def ScaleBy(self, val: float):
         self.scale *= val
@@ -443,5 +485,5 @@ class Entity(ABC):
     def GetDrawable(self):
         drawable = Drawable(deepcopy(self.model), self.color)
         drawable.Scale(self.scale)
-        drawable.Translate(self.pos)
+        drawable.Translate(self.position)
         return drawable
