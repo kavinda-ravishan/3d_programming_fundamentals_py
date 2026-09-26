@@ -73,6 +73,9 @@ class Plank(Entity):
         self.free_point += Vec2(0, val)
         self.UpdateModel(Plank.Make(self.anchor_point, self.free_point))
 
+    def GetPlankSurfaceVec(self):
+        return (self.anchor_point - self.free_point)
+
     @staticmethod
     def Make(anchor_point: Vec2, free_point: Vec2):
         thickness = 5.0
@@ -130,32 +133,38 @@ class PlankScene(Scene):
             if(self.balls.RemoveOutOfBoundBall(i)): 
                 continue
 
+            plank_surface_vec = self.plank.GetPlankSurfaceVec().Normalize()
             ball = self.balls.GetBalls()[i]
             ball_position = self.balls.GetBalls()[i].GetPosition()
 
-            dy = plank_p1.y - plank_p0.y
-            dx = plank_p1.x - plank_p0.x
+            # Method 1 : Get plank normal using ball position
+            # dy = plank_p1.y - plank_p0.y
+            # dx = plank_p1.x - plank_p0.x
 
-            plank_normal = Vec2()
-            if dy == 0.0:
-                plank_normal = Vec2(0.0, 1.0 if ball_position.y > plank_p0.y else -1.0)
-            elif dx == 0.0:
-                plank_normal = Vec2(1.0 if ball_position.x > plank_p0.x else -1.0, 0.0)
-            else:
-                m = dy / dx
-                w = -(dx / dy)
-                b = plank_p0.y - (m * plank_p0.x)
-                p = ball_position.y - (w * ball_position.x)
-                x = (p-b)/(m-w)
-                y = (m * x) + b
-                plank_normal = ball_position - Vec2(x, y)
+            # plank_normal = Vec2()
+            # if dy == 0.0:
+            #     plank_normal = Vec2(0.0, 1.0 if ball_position.y > plank_p0.y else -1.0)
+            # elif dx == 0.0:
+            #     plank_normal = Vec2(1.0 if ball_position.x > plank_p0.x else -1.0, 0.0)
+            # else:
+            #     m = dy / dx
+            #     w = -(dx / dy)
+            #     b = plank_p0.y - (m * plank_p0.x)
+            #     p = ball_position.y - (w * ball_position.x)
+            #     x = (p-b)/(m-w)
+            #     y = (m * x) + b
+            #     plank_normal = ball_position - Vec2(x, y)
 
-            v = ball.GetVelocity()
-            if plank_normal * v < 0.0:
+            # Method 2 : Get plank normal using ball position
+            plank_normal = Vec2(plank_surface_vec.y, -plank_surface_vec.x)
+
+            ball_velocity = ball.GetVelocity()
+            if plank_normal * ball_velocity < 0.0:
                 if(DistancePointLine(plank_p0, plank_p1, ball_position) < ball.GetRadius()):
-                    w = (plank_p1 - plank_p0).Normalize()
-                    new_velocity = (w * (v*w) * 2.0) - v
-                    self.balls.GetBalls()[i].SetVelocity(new_velocity)
+                    v = ball_velocity
+                    w = plank_surface_vec
+                    ball_new_velocity = (w * (v*w) * 2.0) - v
+                    self.balls.GetBalls()[i].SetVelocity(ball_new_velocity)
 
             self.balls.GetBalls()[i].Update(dt)
 
