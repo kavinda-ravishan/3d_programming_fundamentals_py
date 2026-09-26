@@ -155,7 +155,7 @@ class PlankScene(Scene):
             #     y = (m * x) + b
             #     plank_normal = ball_position - Vec2(x, y)
 
-            # Method 2 : Get plank normal using ball position
+            # Method 2 : Get plank normal by rotating plank surface vec by -pi/2
             plank_normal = Vec2(plank_surface_vec.y, -plank_surface_vec.x)
 
             ball_velocity = ball.GetVelocity()
