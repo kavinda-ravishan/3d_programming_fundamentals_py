@@ -56,6 +56,12 @@ class Vec2:
             return Vec2(0, 0)  # avoid division by zero
         return Vec2(self.x / length, self.y / length)
 
+    def ClockwiseOrthogonal(self):
+        return Vec2(self.y, -self.x)
+
+    def CounterClockwiseOrthogonal(self):
+        return Vec2(-self.y, self.x)
+
     def __repr__(self):
         return f"Vec2({self.x:.3f}, {self.y:.3f})"
 
