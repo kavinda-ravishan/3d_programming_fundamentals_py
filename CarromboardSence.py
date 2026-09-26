@@ -9,23 +9,15 @@ class Ball(Entity):
         super().__init__(Star.Make(radius, radius, 8), Ball.BoundingBox(), position, color)
         self.radius = radius
         self.velocity = velocity
-        self.position = position
 
     def Update(self, dt: float):
-        delta = self.velocity * dt
-        self.position += delta
-        self.TranslateBy(delta)
+        self.TranslateBy(self.velocity * dt)
 
     def GetRadius(self):
         return self.radius
 
     def GetVelocity(self):
         return self.velocity
-
-    def SetPosition(self, position: Vec2):
-        delta = position - self.position
-        self.position = position
-        self.TranslateBy(delta)  
 
     def SetVelocity(self, velocity: Vec2):
         self.velocity = velocity
@@ -57,7 +49,7 @@ class Balls:
     def SpawnNewBall(self):
         # Pick a random angle in radians (0 to 2π)
         angle = uniform(0, 2 * pi)
-        velocity = uniform(100, 300)
+        velocity = uniform(300, 600)
 
         # Velocity components with magnitude velocity
         vx = velocity * cos(angle)
@@ -67,7 +59,7 @@ class Balls:
 
         color = self.colors[len(self.balls)%len(self.colors)]
         self.balls.append(
-            Ball(self.spawn_point, 30, new_velocity, color)
+            Ball(self.spawn_point, 25, new_velocity, color)
         )
 
 class Plank:

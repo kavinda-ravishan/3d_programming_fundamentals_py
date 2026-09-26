@@ -479,6 +479,12 @@ class Entity(ABC):
     def UpdateModel(self, model: list[Vec2]):
         self.model = model
 
+    def GetPosition(self):
+        return self.position
+
+    def SetPosition(self, position: Vec2):
+        self.position = position 
+
     def TranslateBy(self, offset: Vec2):
         self.position += offset
 
