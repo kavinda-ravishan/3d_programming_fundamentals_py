@@ -77,10 +77,18 @@ class Plank:
 class Carromboard(Entity):
     def __init__(self, size: float):
         size_div_2 = size / 2
+
+        # Carromboard 1
         p_top_right = Vec2(size_div_2, size_div_2)
         p_top_left = Vec2(-size_div_2, size_div_2)
         p_bottom_left = Vec2(-size_div_2, -size_div_2)
         p_bottom_right = Vec2(size_div_2, -size_div_2)
+
+        # Carromboard 2
+        # p_top_right = Vec2(0, size_div_2)
+        # p_top_left = Vec2(-size_div_2, 0)
+        # p_bottom_left = Vec2(0, -size_div_2)
+        # p_bottom_right = Vec2(size_div_2, 0)
 
         super().__init__(Carromboard.Make(
             p_top_right,
