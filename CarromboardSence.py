@@ -149,17 +149,18 @@ class CarromboardSence(Scene):
 
         for i in range(len(self.balls.GetBalls())):
 
+            ball_i = self.balls.GetBalls()[i]
+            ball_i_velocity = ball_i.GetVelocity()
+            ball_i_position = ball_i.GetPosition()
+            ball_i_radius = ball_i.GetRadius()
+
             # ball-ball collision 
             for j in range(len(self.balls.GetBalls())):
                 if(i == j): continue
 
-                ball_i = self.balls.GetBalls()[i]
                 ball_j = self.balls.GetBalls()[j]
-                ball_i_velocity = ball_i.GetVelocity()
                 ball_j_velocity = ball_j.GetVelocity()
-                ball_i_position = ball_i.GetPosition()
                 ball_j_position = ball_j.GetPosition()
-                ball_i_radius = ball_i.GetRadius()
                 ball_j_radius = ball_j.GetRadius()
 
                 balls_delta_position = ball_i_position - ball_j_position
@@ -171,8 +172,8 @@ class CarromboardSence(Scene):
                     correction_dir = balls_delta_position.Normalize()
 
                     # Push each ball half the overlap distance
-                    ball_i.SetPosition(ball_i_position + correction_dir * (balls_overlap / 2))
-                    ball_j.SetPosition(ball_j_position - correction_dir * (balls_overlap / 2))
+                    self.balls.GetBalls()[i].SetPosition(ball_i_position + correction_dir * (balls_overlap / 2))
+                    self.balls.GetBalls()[j].SetPosition(ball_j_position - correction_dir * (balls_overlap / 2))
 
                     # set new velocities
                     self.balls.GetBalls()[i].SetVelocity(ball_j_velocity)
@@ -181,20 +182,17 @@ class CarromboardSence(Scene):
             # ball-plank collision 
             for plank in self.carromboard.GetPlanks():
                 plank_surface_vec = plank.GetSurfaceVec().Normalize()
-                ball = self.balls.GetBalls()[i]
-                ball_position = self.balls.GetBalls()[i].GetPosition()
                 plank_normal = plank.GetClockwiseOrthogonalVec()
 
-                ball_velocity = ball.GetVelocity()
-                if plank_normal * ball_velocity < 0.0:
+                if plank_normal * ball_i_velocity < 0.0:
                     plank_points = plank.GetLinePoints()
                     plank_p0 = plank_points[0]
                     plank_p1 = plank_points[1]
-                    if(DistancePointLine(plank_p0, plank_p1, ball_position) < ball.GetRadius()):
-                        v = ball_velocity
+                    if(DistancePointLine(plank_p0, plank_p1, ball_i_position) < ball_i_radius):
+                        v = ball_i_velocity
                         w = plank_surface_vec
-                        ball_new_velocity = (w * (v*w) * 2.0) - v
-                        self.balls.GetBalls()[i].SetVelocity(ball_new_velocity)
+                        ball_i_new_velocity = (w * (v*w) * 2.0) - v
+                        self.balls.GetBalls()[i].SetVelocity(ball_i_new_velocity)
 
             self.balls.GetBalls()[i].Update(dt)
 
