@@ -28,8 +28,8 @@ class Ball(Entity):
 
 class Balls:
     def __init__(self):
-        self.limit = 600.0
         self.spawn_point = Vec2(0, 0)
+        self.radius = 25
         self.colors = [
             Color.White,
             Color.Gray,
@@ -55,7 +55,7 @@ class Balls:
 
         color = self.colors[len(self.balls)%len(self.colors)]
         self.balls.append(
-            Ball(self.spawn_point, 25, new_velocity, color)
+            Ball(self.spawn_point, self.radius, new_velocity, color)
         )
 
 class Plank:
@@ -133,32 +133,51 @@ class CarromboardSence(Scene):
 
     def HandleBallBallCollision(self, i: int):
         for j in range(len(self.balls.GetBalls())):
-            if(i == j): continue
+            if i == j: continue
 
-            ball_i_velocity = self.balls.GetBalls()[i].GetVelocity()
-            ball_i_position = self.balls.GetBalls()[i].GetPosition()
-            ball_i_radius = self.balls.GetBalls()[i].GetRadius()
+            ball_i = self.balls.GetBalls()[i]
+            ball_j = self.balls.GetBalls()[j]
 
-            ball_j_velocity = self.balls.GetBalls()[j].GetVelocity()
-            ball_j_position = self.balls.GetBalls()[j].GetPosition()
-            ball_j_radius = self.balls.GetBalls()[j].GetRadius()
+            ball_i_velocity = ball_i.GetVelocity()
+            ball_i_position = ball_i.GetPosition()
+            ball_i_radius = ball_i.GetRadius()
+
+            ball_j_velocity = ball_j.GetVelocity()
+            ball_j_position = ball_j.GetPosition()
+            ball_j_radius = ball_j.GetRadius()
 
             balls_delta_position = ball_i_position - ball_j_position
             balls_dist = balls_delta_position.Len()
+            
+            # Prevent division by zero if balls are exactly on top of each other
+            if balls_dist == 0: continue 
+            
             balls_overlap = (ball_i_radius + ball_j_radius) - balls_dist
             
             if balls_overlap > 0:
-                # Normalize direction
+                # 1. Normalize direction
                 correction_dir = balls_delta_position.Normalize()
 
-                # Push each ball half the overlap distance
+                # 2. Push each ball half the overlap distance (Positional Correction)
                 balls_overlap_div_by_2 = balls_overlap / 2
-                self.balls.GetBalls()[i].SetPosition(ball_i_position + correction_dir * (balls_overlap_div_by_2))
-                self.balls.GetBalls()[j].SetPosition(ball_j_position - correction_dir * (balls_overlap_div_by_2))
+                ball_i.SetPosition(ball_i_position + (correction_dir * balls_overlap_div_by_2))
+                ball_j.SetPosition(ball_j_position - (correction_dir * balls_overlap_div_by_2))
 
-                # set new velocities
-                self.balls.GetBalls()[i].SetVelocity(ball_j_velocity)
-                self.balls.GetBalls()[j].SetVelocity(ball_i_velocity)
+                # 3. Relative Velocity
+                rel_velocity = ball_i_velocity - ball_j_velocity
+
+                # 4. Project relative velocity onto the collision normal vector (Dot Product)
+                vel_along_normal = rel_velocity * correction_dir
+
+                # 5. Only resolve if they are actually moving toward each other
+                if vel_along_normal < 0:
+                    # Calculate impulse vector (Mass = 1 simplifies this)
+                    impulse = correction_dir * vel_along_normal
+
+                    # 6. Apply impulse to update velocities
+                    ball_i.SetVelocity(ball_i_velocity - impulse)
+                    ball_j.SetVelocity(ball_j_velocity + impulse)
+
 
     def HandleBallPlankCollision(self, i: int):
         # ball-plank collision 
@@ -166,9 +185,10 @@ class CarromboardSence(Scene):
             plank_surface_vec = plank.GetSurfaceVec().Normalize()
             plank_normal = plank.GetClockwiseOrthogonalVec()
 
-            ball_velocity = self.balls.GetBalls()[i].GetVelocity()
-            ball_position = self.balls.GetBalls()[i].GetPosition()
-            ball_radius = self.balls.GetBalls()[i].GetRadius()
+            ball = self.balls.GetBalls()[i]
+            ball_velocity = ball.GetVelocity()
+            ball_position = ball.GetPosition()
+            ball_radius = ball.GetRadius()
 
             if plank_normal * ball_velocity < 0.0:
                 plank_points = plank.GetLinePoints()
@@ -178,7 +198,7 @@ class CarromboardSence(Scene):
                     v = ball_velocity
                     w = plank_surface_vec
                     ball_new_velocity = (w * (v*w) * 2.0) - v
-                    self.balls.GetBalls()[i].SetVelocity(ball_new_velocity)
+                    ball.SetVelocity(ball_new_velocity)
 
     def Update(self, key: str, mouse_stat: tuple[tuple[int, int], bool, bool], dt: float):
         m_x = mouse_stat[0][0]
