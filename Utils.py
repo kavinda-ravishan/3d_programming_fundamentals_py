@@ -378,29 +378,29 @@ class CoordinateTransformer:
 
 class Camera:
     def __init__(self, coordinate_transformer: CoordinateTransformer):
-        self.pos = Vec2()
-        self.scale = 1.0
+        self.position = Vec2()
+        self.zoom = 1.0
         self.ct = coordinate_transformer
 
-    def GetPos(self): return self.pos
+    def GetPosition(self): return self.position
 
-    def MoveBy(self, offset: Vec2): self.pos += offset
-    def MoveTo(self, pos_in: Vec2): self.pos = pos_in
+    def MoveBy(self, offset: Vec2): self.position += offset
+    def MoveTo(self, position_in: Vec2): self.position = position_in
 
     def Zoom(self, val: float):
-        self.scale *= val
+        self.zoom *= val
 
-    def GetZoomLevel(self): return self.scale
+    def GetZoomLevel(self): return self.zoom
 
     def GetViewportRect(self) -> Rect:
-        zoom_factor = 1.0 / self.scale
+        zoom_factor = 1.0 / self.zoom
         viewport_w = self.ct.gfx.surface.GetFrameWidth() * zoom_factor
         viewport_h = self.ct.gfx.surface.GetFrameHeight() * zoom_factor
-        return Rect.FromWH(self.pos, viewport_w, viewport_h)
+        return Rect.FromWH(self.position, viewport_w, viewport_h)
 
     def Draw(self, drawable: Drawable):
-        drawable.Translate(-self.pos)
-        drawable.Scale(self.scale)
+        drawable.Translate(-self.position)
+        drawable.Scale(self.zoom)
         self.ct.Draw(drawable)
 
 class Scene(ABC):

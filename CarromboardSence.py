@@ -32,7 +32,6 @@ class Balls:
         self.spawn_point = Vec2(0, 0)
         self.colors = [
             Color.White,
-            Color.Black,
             Color.Gray,
             Color.LightGray,
             Color.Red,
@@ -126,7 +125,6 @@ class CarromboardSence(Scene):
     def __init__(self):
         super().__init__()
         self.carromboard = Carromboard(750)
-        
         self.balls = Balls()
 
     def CompsSetupComplete(self): ...
@@ -146,7 +144,7 @@ class CarromboardSence(Scene):
 
         elif 'q' == key: self.camera.Zoom(0.95)
         elif 'e' == key: self.camera.Zoom(1.05)
-        
+
         if m_lb: self.balls.SpawnNewBall()
 
         for i in range(len(self.balls.GetBalls())):
@@ -176,7 +174,7 @@ class CarromboardSence(Scene):
                     ball_i.SetPosition(ball_i_position + correction_dir * (balls_overlap / 2))
                     ball_j.SetPosition(ball_j_position - correction_dir * (balls_overlap / 2))
 
-                if((ball_i_position - ball_j_position).Len() < (ball_i_radius + ball_j_radius)):
+                    # set new velocities
                     self.balls.GetBalls()[i].SetVelocity(ball_j_velocity)
                     self.balls.GetBalls()[j].SetVelocity(ball_i_velocity)
 
