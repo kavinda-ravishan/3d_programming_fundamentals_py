@@ -143,9 +143,7 @@ class CarromboardSence(Scene):
         ball.SetVelocity(ball_velocity + (gravity * dt))
 
     def HandleBallBallCollision(self, i: int):
-        for j in range(len(self.balls.GetBalls())):
-            if i == j: continue
-
+        for j in range(i+1, len(self.balls.GetBalls())):
             ball_i = self.balls.GetBalls()[i]
             ball_j = self.balls.GetBalls()[j]
 
