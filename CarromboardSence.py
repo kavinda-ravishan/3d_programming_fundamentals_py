@@ -127,9 +127,10 @@ class CarromboardSence(Scene):
     def CompsSetupComplete(self): ...
 
     def HandleGravity(self, i: int, dt: float):
-        ball_velocity = self.balls.GetBalls()[i].GetVelocity()
+        ball = self.balls.GetBalls()[i]
+        ball_velocity = ball.GetVelocity()
         gravity = Vec2(0, -2000)
-        self.balls.GetBalls()[i].SetVelocity(ball_velocity + (gravity * dt))
+        ball.SetVelocity(ball_velocity + (gravity * dt))
 
     def HandleBallBallCollision(self, i: int):
         for j in range(len(self.balls.GetBalls())):
