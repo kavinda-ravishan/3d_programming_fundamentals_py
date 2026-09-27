@@ -16,11 +16,21 @@ class Vec2:
         else:
             super().__setattr__(name, value)
 
-    def __add__(self, other: "Vec2"):
-        return Vec2(self.x + other.x, self.y + other.y)
+    def __add__(self, other):
+        if isinstance(other, (int, float)):
+            return Vec2(self.x + other, self.y + other)
+        elif isinstance(other, Vec2):
+            return Vec2(self.x + other.x, self.y + other.y)
+        else:
+            return NotImplemented
 
     def __sub__(self, other: "Vec2"):
-        return Vec2(self.x - other.x, self.y - other.y)
+        if isinstance(other, (int, float)):
+            return Vec2(self.x - other, self.y - other)
+        elif isinstance(other, Vec2):
+            return Vec2(self.x - other.x, self.y - other.y)
+        else:
+            return NotImplemented
 
     def __neg__(self):
         return Vec2(-self.x, -self.y)
@@ -44,6 +54,14 @@ class Vec2:
             return Vec2(self.x / other, self.y / other)
         elif isinstance(other, Vec2):        # element-wise division
             return Vec2(self.x / other.x, self.y / other.y)
+        else:
+            return NotImplemented
+
+    def Mul(self, other):
+        if isinstance(other, (int, float)):  # scalar-vec multiplication
+            return Vec2(self.x * other, self.y * other)
+        elif isinstance(other, Vec2):        # vec-vec multiplication
+            return Vec2(self.x * other.x, self.y * other.y)
         else:
             return NotImplemented
 
