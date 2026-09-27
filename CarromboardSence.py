@@ -126,6 +126,60 @@ class CarromboardSence(Scene):
 
     def CompsSetupComplete(self): ...
 
+    def HandleGravity(self, i: int, dt: float):
+        ball_velocity = self.balls.GetBalls()[i].GetVelocity()
+        gravity = Vec2(0, -2000)
+        self.balls.GetBalls()[i].SetVelocity(ball_velocity + (gravity * dt))
+
+    def HandleBallBallCollision(self, i: int):
+        for j in range(len(self.balls.GetBalls())):
+            if(i == j): continue
+
+            ball_i_velocity = self.balls.GetBalls()[i].GetVelocity()
+            ball_i_position = self.balls.GetBalls()[i].GetPosition()
+            ball_i_radius = self.balls.GetBalls()[i].GetRadius()
+
+            ball_j_velocity = self.balls.GetBalls()[j].GetVelocity()
+            ball_j_position = self.balls.GetBalls()[j].GetPosition()
+            ball_j_radius = self.balls.GetBalls()[j].GetRadius()
+
+            balls_delta_position = ball_i_position - ball_j_position
+            balls_dist = balls_delta_position.Len()
+            balls_overlap = (ball_i_radius + ball_j_radius) - balls_dist
+            
+            if balls_overlap > 0:
+                # Normalize direction
+                correction_dir = balls_delta_position.Normalize()
+
+                # Push each ball half the overlap distance
+                balls_overlap_div_by_2 = balls_overlap / 2
+                self.balls.GetBalls()[i].SetPosition(ball_i_position + correction_dir * (balls_overlap_div_by_2))
+                self.balls.GetBalls()[j].SetPosition(ball_j_position - correction_dir * (balls_overlap_div_by_2))
+
+                # set new velocities
+                self.balls.GetBalls()[i].SetVelocity(ball_j_velocity)
+                self.balls.GetBalls()[j].SetVelocity(ball_i_velocity)
+
+    def HandleBallPlankCollision(self, i: int):
+        # ball-plank collision 
+        for plank in self.carromboard.GetPlanks():
+            plank_surface_vec = plank.GetSurfaceVec().Normalize()
+            plank_normal = plank.GetClockwiseOrthogonalVec()
+
+            ball_velocity = self.balls.GetBalls()[i].GetVelocity()
+            ball_position = self.balls.GetBalls()[i].GetPosition()
+            ball_radius = self.balls.GetBalls()[i].GetRadius()
+
+            if plank_normal * ball_velocity < 0.0:
+                plank_points = plank.GetLinePoints()
+                plank_p0 = plank_points[0]
+                plank_p1 = plank_points[1]
+                if(DistancePointLine(plank_p0, plank_p1, ball_position) < ball_radius):
+                    v = ball_velocity
+                    w = plank_surface_vec
+                    ball_new_velocity = (w * (v*w) * 2.0) - v
+                    self.balls.GetBalls()[i].SetVelocity(ball_new_velocity)
+
     def Update(self, key: str, mouse_stat: tuple[tuple[int, int], bool, bool], dt: float):
         m_x = mouse_stat[0][0]
         m_y = mouse_stat[0][1]
@@ -145,55 +199,9 @@ class CarromboardSence(Scene):
         if m_lb: self.balls.SpawnNewBall()
 
         for i in range(len(self.balls.GetBalls())):
-
-            # ball-ball collision 
-            for j in range(len(self.balls.GetBalls())):
-                if(i == j): continue
-
-                ball_i_velocity = self.balls.GetBalls()[i].GetVelocity()
-                ball_i_position = self.balls.GetBalls()[i].GetPosition()
-                ball_i_radius = self.balls.GetBalls()[i].GetRadius()
-
-                ball_j_velocity = self.balls.GetBalls()[j].GetVelocity()
-                ball_j_position = self.balls.GetBalls()[j].GetPosition()
-                ball_j_radius = self.balls.GetBalls()[j].GetRadius()
-
-                balls_delta_position = ball_i_position - ball_j_position
-                balls_dist = balls_delta_position.Len()
-                balls_overlap = (ball_i_radius + ball_j_radius) - balls_dist
-                
-                if balls_overlap > 0:
-                    # Normalize direction
-                    correction_dir = balls_delta_position.Normalize()
-
-                    # Push each ball half the overlap distance
-                    balls_overlap_div_by_2 = balls_overlap / 2
-                    self.balls.GetBalls()[i].SetPosition(ball_i_position + correction_dir * (balls_overlap_div_by_2))
-                    self.balls.GetBalls()[j].SetPosition(ball_j_position - correction_dir * (balls_overlap_div_by_2))
-
-                    # set new velocities
-                    self.balls.GetBalls()[i].SetVelocity(ball_j_velocity)
-                    self.balls.GetBalls()[j].SetVelocity(ball_i_velocity)
-
-            # ball-plank collision 
-            for plank in self.carromboard.GetPlanks():
-                plank_surface_vec = plank.GetSurfaceVec().Normalize()
-                plank_normal = plank.GetClockwiseOrthogonalVec()
-
-                ball_velocity = self.balls.GetBalls()[i].GetVelocity()
-                ball_position = self.balls.GetBalls()[i].GetPosition()
-                ball_radius = self.balls.GetBalls()[i].GetRadius()
-
-                if plank_normal * ball_velocity < 0.0:
-                    plank_points = plank.GetLinePoints()
-                    plank_p0 = plank_points[0]
-                    plank_p1 = plank_points[1]
-                    if(DistancePointLine(plank_p0, plank_p1, ball_position) < ball_radius):
-                        v = ball_velocity
-                        w = plank_surface_vec
-                        ball_new_velocity = (w * (v*w) * 2.0) - v
-                        self.balls.GetBalls()[i].SetVelocity(ball_new_velocity)
-
+            # self.HandleGravity(i, dt)
+            self.HandleBallBallCollision(i)
+            self.HandleBallPlankCollision(i)
             self.balls.GetBalls()[i].Update(dt)
 
     def Draw(self):
