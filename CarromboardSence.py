@@ -172,8 +172,9 @@ class CarromboardSence(Scene):
                     correction_dir = balls_delta_position.Normalize()
 
                     # Push each ball half the overlap distance
-                    self.balls.GetBalls()[i].SetPosition(ball_i_position + correction_dir * (balls_overlap / 2))
-                    self.balls.GetBalls()[j].SetPosition(ball_j_position - correction_dir * (balls_overlap / 2))
+                    balls_overlap_div_by_2 = balls_overlap / 2
+                    self.balls.GetBalls()[i].SetPosition(ball_i_position + correction_dir * (balls_overlap_div_by_2))
+                    self.balls.GetBalls()[j].SetPosition(ball_j_position - correction_dir * (balls_overlap_div_by_2))
 
                     # set new velocities
                     self.balls.GetBalls()[i].SetVelocity(ball_j_velocity)
