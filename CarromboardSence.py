@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import Union
 from math import pi, sin, cos
 from random import uniform
 from Utils import Entity, Vec2, Rect, Color, Scene, DistancePointLine
@@ -27,7 +28,7 @@ class Ball(Entity):
         self.velocity = velocity
 
     @staticmethod
-    def BoundingBox() -> Rect | None:
+    def BoundingBox() -> Union[Rect, None]:
         return None
 
 class Balls:
@@ -214,21 +215,24 @@ class CarromboardSence(Scene):
                     ball_new_velocity = (w * (v*w) * 2.0) - v
                     ball.SetVelocity(ball_new_velocity)
 
-    def Update(self, key: str, mouse_stat: tuple[tuple[int, int], bool, bool], dt: float):
-        m_x = mouse_stat[0][0]
-        m_y = mouse_stat[0][1]
+    def Update(self, key: Union[str, None], mouse_stat: tuple[tuple[int, int], bool, bool], dt: float):
+        # m_x = mouse_stat[0][0]
+        # m_y = mouse_stat[0][1]
         m_lb = mouse_stat[1]
-        m_rb = mouse_stat[2]
+        # m_rb = mouse_stat[2]
 
         speed = 10.0
+        camera = self.camera
+        if camera is None:
+            raise Exception("Camera is not initialized for this scene.")
 
-        if 'w' == key: self.camera.MoveBy(Vec2(0.0, speed))
-        elif 's' == key: self.camera.MoveBy(Vec2(0.0, -speed))
-        elif 'd' == key: self.camera.MoveBy(Vec2(speed, 0.0))
-        elif 'a' == key: self.camera.MoveBy(Vec2(-speed, 0.0))
+        if 'w' == key: camera.MoveBy(Vec2(0.0, speed))
+        elif 's' == key: camera.MoveBy(Vec2(0.0, -speed))
+        elif 'd' == key: camera.MoveBy(Vec2(speed, 0.0))
+        elif 'a' == key: camera.MoveBy(Vec2(-speed, 0.0))
 
-        elif 'q' == key: self.camera.Zoom(0.95)
-        elif 'e' == key: self.camera.Zoom(1.05)
+        elif 'q' == key: camera.Zoom(0.95)
+        elif 'e' == key: camera.Zoom(1.05)
 
         if m_lb: self.balls.SpawnNewBall()
 
@@ -240,8 +244,13 @@ class CarromboardSence(Scene):
 
     def Draw(self):
         self.entities: list[Entity] = [self.carromboard, *self.balls.GetBalls()]
+        
+        camera = self.camera
+        if camera is None:
+            raise Exception("Camera is not initialized for this scene.")
 
-        vp_rect = self.camera.GetViewportRect()
+        vp_rect = camera.GetViewportRect()
         for entity in self.entities:
-            if entity.GetBoundingBox() is None or vp_rect.Intersects(entity.GetBoundingBox()):
-                self.camera.Draw(entity.GetDrawable())
+            bbox = entity.GetBoundingBox() 
+            if bbox is None or vp_rect.Intersects(bbox):
+                camera.Draw(entity.GetDrawable())

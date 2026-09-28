@@ -1,5 +1,6 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
+from typing import Any, Union, overload
 from copy import deepcopy
 import cv2
 import numpy as np
@@ -10,60 +11,53 @@ class Vec2:
         self.x = float(x)
         self.y = float(y)
 
-    def __setattr__(self, name, value):
+    def __setattr__(self, name: str, value: float):
         if name in {"x", "y"}:
             super().__setattr__(name, float(value))
         else:
             super().__setattr__(name, value)
 
-    def __add__(self, other):
-        if isinstance(other, (int, float)):
-            return Vec2(self.x + other, self.y + other)
-        elif isinstance(other, Vec2):
+    def __add__(self, other: Union[Vec2, int, float]):
+        if isinstance(other, Vec2):
             return Vec2(self.x + other.x, self.y + other.y)
         else:
-            return NotImplemented
+            return Vec2(self.x + other, self.y + other)
 
-    def __sub__(self, other: "Vec2"):
-        if isinstance(other, (int, float)):
-            return Vec2(self.x - other, self.y - other)
-        elif isinstance(other, Vec2):
+    def __sub__(self, other: Union[Vec2, int, float]):
+        if isinstance(other, Vec2):
             return Vec2(self.x - other.x, self.y - other.y)
         else:
-            return NotImplemented
+            return Vec2(self.x - other, self.y - other)
 
     def __neg__(self):
         return Vec2(-self.x, -self.y)
 
-    def __mul__(self, other):
-        if isinstance(other, (int, float)):  # scalar-vec multiplication
-            return Vec2(self.x * other, self.y * other)
-        elif isinstance(other, Vec2):        # vec-vec dot product
+    @overload
+    def __mul__(self, other: Vec2) -> float: ...
+
+    @overload
+    def __mul__(self, other: Union[int, float]) -> Vec2: ...
+
+    def __mul__(self, other: Union[Vec2, int, float]) -> Union[Vec2, int, float]:
+        if isinstance(other, Vec2): # vec-vec dot product
             return (self.x * other.x) + (self.y * other.y)
-        else:
-            return NotImplemented
-
-    def __rmul__(self, other):
-        if isinstance(other, (int, float)):
+        else: # scalar-vec multiplication
             return Vec2(self.x * other, self.y * other)
-        else:
-            return NotImplemented
 
-    def __truediv__(self, other):
-        if isinstance(other, (int, float)):  # scalar division
-            return Vec2(self.x / other, self.y / other)
-        elif isinstance(other, Vec2):        # element-wise division
+    def __rmul__(self, other: Union[int, float]):
+        return Vec2(self.x * other, self.y * other)
+
+    def __truediv__(self, other: Union[Vec2, int, float]):
+        if isinstance(other, Vec2): # element-wise division
             return Vec2(self.x / other.x, self.y / other.y)
-        else:
-            return NotImplemented
+        else: # scalar division
+            return Vec2(self.x / other, self.y / other)
 
-    def Mul(self, other):
-        if isinstance(other, (int, float)):  # scalar-vec multiplication
-            return Vec2(self.x * other, self.y * other)
-        elif isinstance(other, Vec2):        # vec-vec multiplication
+    def Mul(self, other: Union[Vec2, int, float]):
+        if isinstance(other, Vec2): # vec-vec multiplication
             return Vec2(self.x * other.x, self.y * other.y)
-        else:
-            return NotImplemented
+        else: # scalar-vec multiplication
+            return Vec2(self.x * other, self.y * other)
 
     def Len(self):
         return sqrt((self.x * self.x) + (self.y * self.y))
@@ -71,7 +65,7 @@ class Vec2:
     def Normalize(self):
         length = self.Len()
         if length == 0:
-            return Vec2(0, 0)  # avoid division by zero
+            raise ZeroDivisionError("Cannot normalize a vector of length 0.")
         return Vec2(self.x / length, self.y / length)
 
     def ClockwiseOrthogonal(self):
@@ -112,12 +106,23 @@ class Rect:
                     or self.bottom > other.top)
 
 class Color:
+    White: "Color"
+    Black: "Color"
+    Gray: "Color"
+    LightGray: "Color"
+    Red: "Color"
+    Green: "Color"
+    Blue: "Color"
+    Yellow: "Color"
+    Cyan: "Color"
+    Magenta: "Color"
+
     def __init__(self, r: int = 0, g: int = 0, b: int = 0):
         self.r = int(r)
         self.g = int(g)
         self.b = int(b)
 
-    def __setattr__(self, name, value):
+    def __setattr__(self, name: str, value: int):
         if name in {"r", "g", "b"}:
             super().__setattr__(name, int(value))
         else:
@@ -166,7 +171,7 @@ class Mouse:
         self.lb_down = False
         self.rb_down = False
 
-    def _Callback(self, event, x, y, flags, param):
+    def Callback(self, event: int, x: int, y: int, flags: Any , param: Any):
         if event == cv2.EVENT_MOUSEMOVE:
             self.pos = (x, y)
             
@@ -188,7 +193,7 @@ class Mouse:
         
 class Keyboard:
     def __init__(self):
-        self.key: str | None = None
+        self.key: Union[str, None] = None
         # Map special non-printable keys
         self.special_keys = {
             27: "esc",
@@ -198,7 +203,7 @@ class Keyboard:
             8: "backspace"
         }
 
-    def _Callback(self, key_code: int):
+    def Callback(self, key_code: int):
         if key_code != 255:  # 255 means no key was pressed
             self.key = self.special_keys.get(key_code, chr(key_code) if 32 < key_code < 127 else f"unknown({key_code})")
 
@@ -217,7 +222,7 @@ class Graphics:
         self.surface = Surface(frame_width, frame_height)
 
         cv2.namedWindow(window_name)
-        cv2.setMouseCallback(window_name, self.mouse._Callback)
+        cv2.setMouseCallback(window_name, self.mouse.Callback)
 
     def __del__(self):
         cv2.destroyAllWindows()
@@ -237,7 +242,7 @@ class Graphics:
     def Wait(self):
         status_code = cv2.waitKey(self.delay)
         key_code = status_code & 0xFF
-        self.keyboard._Callback(key_code)
+        self.keyboard.Callback(key_code)
 
     def GetKey(self):
         return self.keyboard.GetKey()
@@ -330,7 +335,7 @@ class Graphics:
 
             for x in range(int(p0.x), int(p1.x)):
                 y = (m * x) + b
-                self.PutPixel(x, y, color)
+                self.PutPixel(x, int(y), color)
 
         elif p0.y != p1.y:
             if(p0.y > p1.y):
@@ -341,7 +346,7 @@ class Graphics:
 
             for y in range(int(p0.y), int(p1.y)):
                 x = (m * y) + b
-                self.PutPixel(x, y, color)
+                self.PutPixel(int(x), y, color)
 
     def DrawClosePolyline(self, verts: list[Vec2],  color: Color):
         for i in range(len(verts)):
@@ -423,7 +428,7 @@ class Camera:
 
 class Scene(ABC):
     def __init__(self):
-        self.camera: Camera | None = None
+        self.camera: Union[Camera, None] = None
 
     @abstractmethod
     def CompsSetupComplete(self): pass
@@ -433,7 +438,7 @@ class Scene(ABC):
         self.CompsSetupComplete()
 
     @abstractmethod
-    def Update(self, key: str, mouse_stat: tuple[tuple[int, int], bool, bool], dt: float): pass
+    def Update(self, key: Union[str, None], mouse_stat: tuple[tuple[int, int], bool, bool], dt: float): pass
 
     @abstractmethod
     def Draw(self): pass
@@ -463,7 +468,7 @@ class Game:
     def ComposeFrame(self):
         self.scenes[self.c_scene_id].Draw()
 
-    def ManageInputs(self, key: str):
+    def ManageInputs(self, key: Union[str, None]):
             if key == 'esc':
                 self.main_loop_active = False
             elif key == 'tab':
@@ -484,15 +489,12 @@ class Game:
         print("Game loop ended")
 
 class Entity(ABC):
-    def __init__(self, model: list[Vec2], bbox: Rect | None, position: Vec2, color: Color):
+    def __init__(self, model: list[Vec2], bbox: Union[Rect, None], position: Vec2, color: Color):
         self.model = model
-        self.bbox: Rect | None = bbox
+        self.bbox: Union[Rect, None] = bbox
         self.position = position
         self.scale = 1.0
         self.color = color
-
-    def GetPosition(self):
-        return self.position
 
     def UpdateModel(self, model: list[Vec2]):
         self.model = model

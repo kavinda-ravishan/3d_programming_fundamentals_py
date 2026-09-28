@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import Union
 from random import uniform
 from Utils import Entity, Vec2, Rect, Color, Scene, DistancePointLine
 from PolylinesScene import Star
@@ -103,21 +104,24 @@ class PlankScene(Scene):
 
     def CompsSetupComplete(self): ...
 
-    def Update(self, key: str, mouse_stat: tuple[tuple[int, int], bool, bool], dt: float):
-        m_x = mouse_stat[0][0]
-        m_y = mouse_stat[0][1]
+    def Update(self, key: Union[str, None], mouse_stat: tuple[tuple[int, int], bool, bool], dt: float):
+        # m_x = mouse_stat[0][0]
+        # m_y = mouse_stat[0][1]
         m_lb = mouse_stat[1]
-        m_rb = mouse_stat[2]
+        # m_rb = mouse_stat[2]
 
         speed = 10.0
+        camera = self.camera
+        if camera is None:
+            raise Exception("Camera is not initialized for this scene.")
 
-        if 'w' == key: self.camera.MoveBy(Vec2(0.0, speed))
-        elif 's' == key: self.camera.MoveBy(Vec2(0.0, -speed))
-        elif 'd' == key: self.camera.MoveBy(Vec2(speed, 0.0))
-        elif 'a' == key: self.camera.MoveBy(Vec2(-speed, 0.0))
+        if 'w' == key: camera.MoveBy(Vec2(0.0, speed))
+        elif 's' == key: camera.MoveBy(Vec2(0.0, -speed))
+        elif 'd' == key: camera.MoveBy(Vec2(speed, 0.0))
+        elif 'a' == key: camera.MoveBy(Vec2(-speed, 0.0))
 
-        elif 'q' == key: self.camera.Zoom(0.95)
-        elif 'e' == key: self.camera.Zoom(1.05)
+        elif 'q' == key: camera.Zoom(0.95)
+        elif 'e' == key: camera.Zoom(1.05)
         
         elif 'r' == key: self.plank.MoveFreeY( 5.0)
         elif 'f' == key: self.plank.MoveFreeY(-5.0)
@@ -171,7 +175,12 @@ class PlankScene(Scene):
     def Draw(self):
         self.entities: list[Entity] = [self.plank, *self.balls.GetBalls()]
 
-        vp_rect = self.camera.GetViewportRect()
+        camera = self.camera
+        if camera is None:
+            raise Exception("Camera is not initialized for this scene.")
+
+        vp_rect = camera.GetViewportRect()
         for entity in self.entities:
-            if entity.GetBoundingBox() is None or vp_rect.Intersects(entity.GetBoundingBox()):
-                self.camera.Draw(entity.GetDrawable())
+            bbox = entity.GetBoundingBox() 
+            if bbox is None or vp_rect.Intersects(bbox):
+                camera.Draw(entity.GetDrawable())
