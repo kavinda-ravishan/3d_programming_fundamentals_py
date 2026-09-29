@@ -90,7 +90,12 @@ class PolylinesScene(Scene):
         return entities
 
     def Update(self, key: Union[str, None], mouse_stat: tuple[Vec2, bool, bool], dt: float):
-        m_c: Final[Vec2] = mouse_stat[0]
+        camera = self.camera
+        if camera is None:
+            raise Exception("Camera is not initialized for this scene.")
+        
+        m_c_s: Final[Vec2] = mouse_stat[0]
+        m_c_w: Final[Vec2] = camera.ScreenToWorldCoordinate(m_c_s)
         m_lb: Final[bool] = mouse_stat[1]
         m_rb: Final[bool] = mouse_stat[2]
 
@@ -99,12 +104,7 @@ class PolylinesScene(Scene):
         zoom_out_factor: Final[float] = 0.95
         zoom_in_factor: Final[float] = 1.05
 
-        camera = self.camera
-        if camera is None:
-            raise Exception("Camera is not initialized for this scene.")
-
         if m_lb:
-            m_c_w = camera.ScreenToWorldCoordinate(m_c)
             for i in range(len(self.entities)):
                 bbox = self.entities[i].GetBoundingBox()
                 if bbox is not None and bbox.PointContain(m_c_w):
@@ -117,27 +117,27 @@ class PolylinesScene(Scene):
             self.selected_ids.clear()
 
         if not self.selected_ids:
-            if 'w' == key: camera.MoveBy(Vec2(0.0, move_speed).Rotate(camera.GetAngle()))
-            elif 's' == key: camera.MoveBy(Vec2(0.0, -move_speed).Rotate(camera.GetAngle()))
-            elif 'd' == key: camera.MoveBy(Vec2(move_speed, 0.0).Rotate(camera.GetAngle()))
-            elif 'a' == key: camera.MoveBy(Vec2(-move_speed, 0.0).Rotate(camera.GetAngle()))
+            if 'w' == key: camera.MoveBy(Vec2(0.0, move_speed).Rotate(-camera.GetAngle()))
+            elif 's' == key: camera.MoveBy(Vec2(0.0, -move_speed).Rotate(-camera.GetAngle()))
+            elif 'd' == key: camera.MoveBy(Vec2(move_speed, 0.0).Rotate(-camera.GetAngle()))
+            elif 'a' == key: camera.MoveBy(Vec2(-move_speed, 0.0).Rotate(-camera.GetAngle()))
             elif 'q' == key: camera.Zoom(zoom_out_factor)
             elif 'e' == key: camera.Zoom(zoom_in_factor)
-            elif 'z' == key: camera.RotateBy(rotational_speed)
-            elif 'x' == key: camera.RotateBy(-rotational_speed)
+            elif 'z' == key: camera.Rotate(rotational_speed)
+            elif 'x' == key: camera.Rotate(-rotational_speed)
         else:
             if 'w' == key:
                 for i in self.selected_ids:
-                    self.entities[i].TranslateBy(Vec2(0.0, move_speed).Rotate(camera.GetAngle()))
+                    self.entities[i].TranslateBy(Vec2(0.0, move_speed).Rotate(-camera.GetAngle()))
             elif 's' == key:
                 for i in self.selected_ids:
-                    self.entities[i].TranslateBy(Vec2(0.0, -move_speed).Rotate(camera.GetAngle()))
+                    self.entities[i].TranslateBy(Vec2(0.0, -move_speed).Rotate(-camera.GetAngle()))
             elif 'd' == key:
                 for i in self.selected_ids:
-                    self.entities[i].TranslateBy(Vec2(move_speed, 0.0).Rotate(camera.GetAngle()))
+                    self.entities[i].TranslateBy(Vec2(move_speed, 0.0).Rotate(-camera.GetAngle()))
             elif 'a' == key:
                 for i in self.selected_ids:
-                    self.entities[i].TranslateBy(Vec2(-move_speed, 0.0).Rotate(camera.GetAngle()))
+                    self.entities[i].TranslateBy(Vec2(-move_speed, 0.0).Rotate(-camera.GetAngle()))
             elif 'q' == key:
                 for i in self.selected_ids:
                     self.entities[i].ScaleBy(zoom_out_factor)
@@ -146,10 +146,10 @@ class PolylinesScene(Scene):
                     self.entities[i].ScaleBy(zoom_in_factor)
             elif 'z' == key:
                 for i in self.selected_ids:
-                    self.entities[i].RotateBy(rotational_speed)
+                    self.entities[i].Rotate(rotational_speed)
             elif 'x' == key:
                 for i in self.selected_ids:
-                    self.entities[i].RotateBy(-rotational_speed)
+                    self.entities[i].Rotate(-rotational_speed)
 
     def Draw(self):
         camera = self.camera

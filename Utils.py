@@ -415,7 +415,8 @@ class Drawable:
 
     def Rotate(self, angle_in: float):
         self.translation = self.translation.Rotate(angle_in)
-        self.angle = angle_in
+        self.angle = (self.angle + angle_in) % tau
+
 
     def ScaleIndependent(self, scale_in_x: float, scale_in_y: float):
         self.scale_x *= scale_in_x
@@ -464,7 +465,7 @@ class Camera:
     def Zoom(self, val: float):
         self.zoom *= val
 
-    def RotateBy(self, angle: float):
+    def Rotate(self, angle: float):
         self.angle = (self.angle + angle) % tau
 
     def GetAngle(self):
@@ -479,7 +480,7 @@ class Camera:
         sw = self.ct.gfx.surface.GetFrameWidth()
         sh = self.ct.gfx.surface.GetFrameHeight()
         screen_offset = Vec2(c.x - sw / 2, -(c.y - sh / 2)) / self.zoom
-        return self.position + screen_offset.Rotate(self.angle)
+        return self.position + screen_offset.Rotate(-self.angle)
 
     def GetViewportRect(self) -> Rect:
         zoom_factor = 1.0 / self.zoom
@@ -493,8 +494,8 @@ class Camera:
         return Rect.FromWH(self.position, diagonal, diagonal)
 
     def Draw(self, drawable: Drawable):
-        drawable.translation = (drawable.translation - self.position).Rotate(-self.angle)
-        drawable.angle -= self.angle
+        drawable.Translate(-self.position)
+        drawable.Rotate(self.angle)
         drawable.Scale(self.zoom)
         self.ct.Draw(drawable)
 
@@ -582,7 +583,7 @@ class Entity(ABC):
     def SetColor(self, color: Color):
         self.color = color
 
-    def RotateBy(self, angle: float):
+    def Rotate(self, angle: float):
         self.angle = (self.angle + angle) % tau
 
     def TranslateBy(self, offset: Vec2):
