@@ -104,9 +104,8 @@ class PlankScene(Scene):
 
     def CompsSetupComplete(self): ...
 
-    def Update(self, key: Union[str, None], mouse_stat: tuple[tuple[int, int], bool, bool], dt: float):
-        # m_x = mouse_stat[0][0]
-        # m_y = mouse_stat[0][1]
+    def Update(self, key: Union[str, None], mouse_stat: tuple[Vec2, bool, bool], dt: float):
+        # m_c = mouse_stat[0]
         m_lb = mouse_stat[1]
         # m_rb = mouse_stat[2]
 

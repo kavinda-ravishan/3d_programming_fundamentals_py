@@ -8,5 +8,5 @@ if '__main__' == __name__:
     frame_height = 800
     fps = 60.0
 
-    game = Game(frame_width, frame_height, fps, [CarromboardSence(), PlankScene(), PolylinesScene()])
+    game = Game(frame_width, frame_height, fps, [PolylinesScene(), CarromboardSence(), PlankScene()])
     game.Go()

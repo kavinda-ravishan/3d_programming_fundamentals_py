@@ -2,9 +2,9 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Any, Union, overload
 from copy import deepcopy
+from math import sqrt, cos, sin
 import cv2
 import numpy as np
-from math import sqrt
 
 class Vec2:
     def __init__(self, x: float = 0, y: float = 0):
@@ -74,6 +74,21 @@ class Vec2:
     def CounterClockwiseOrthogonal(self):
         return Vec2(-self.y, self.x)
 
+    def Rotate(self, angle: float):
+        cos_theta = cos(angle)
+        sin_theta = sin(angle)
+
+        x = (self.x*cos_theta) - (self.y*sin_theta)
+        y = (self.x*sin_theta) + (self.y*cos_theta)
+        
+        return Vec2(x, y)
+
+    def RotateCosTSinT(self, cos_theta: float, sin_theta: float):
+        x = (self.x*cos_theta) - (self.y*sin_theta)
+        y = (self.x*sin_theta) + (self.y*cos_theta)
+        
+        return Vec2(x, y)
+
     def __repr__(self):
         return f"Vec2({self.x:.3f}, {self.y:.3f})"
 
@@ -83,6 +98,21 @@ class Rect:
         self.right: float = float(right)
         self.top: float = float(top)
         self.bottom: float = float(bottom)
+
+    def TranslateBy(self, offset: Vec2):
+        self.left += offset.x
+        self.right += offset.x
+        self.top += offset.y
+        self.bottom += offset.y
+
+    def SetPosition(self, position: Vec2):
+        hw = (self.right - self.left) / 2
+        hh = (self.top - self.bottom) / 2
+
+        self.left = position.x - hw
+        self.right = position.x + hw
+        self.bottom = position.y - hh
+        self.top = position.y + hh
 
     @classmethod
     def FromVec2(cls, top_left: Vec2, bottom_right: Vec2):
@@ -97,6 +127,14 @@ class Rect:
             middle_point.x + width_div_2, 
             middle_point.y + height_div_2, 
             middle_point.y - height_div_2
+        )
+
+    def PointContain(self, point: Vec2):
+        return (
+            self.left < point.x
+            and self.right > point.x
+            and self.bottom < point.y
+            and self.top > point.y
         )
 
     def Intersects(self, other: "Rect"):
@@ -167,13 +205,13 @@ def DistancePointLine(l0: Vec2, l1: Vec2, p: Vec2):
 
 class Mouse:
     def __init__(self):
-        self.pos = (0, 0)
+        self.pos = Vec2(0, 0)
         self.lb_down = False
         self.rb_down = False
 
     def Callback(self, event: int, x: int, y: int, flags: Any , param: Any):
         if event == cv2.EVENT_MOUSEMOVE:
-            self.pos = (x, y)
+            self.pos = Vec2(x, y)
             
         elif event == cv2.EVENT_LBUTTONDOWN:
             self.lb_down = True
@@ -188,7 +226,7 @@ class Mouse:
             self.rb_down = False
     
     # out: (pos, lb down, rb down)
-    def GetState(self) -> tuple[tuple[int, int], bool, bool]:
+    def GetState(self) -> tuple[Vec2, bool, bool]:
         return self.pos, self.lb_down, self.rb_down
         
 class Keyboard:
@@ -361,6 +399,7 @@ class Drawable:
         self.translation: Vec2 = Vec2(0.0, 0.0)
         self.scale_x: float = 1.0
         self.scale_y: float = 1.0
+        self.angle: float = 0.0
         self.color: Color = color
 
     def Translate(self, translation_in: Vec2):
@@ -371,6 +410,10 @@ class Drawable:
         self.scale_y *= scale_in
         self.translation *= scale_in
 
+    def Rotate(self, angle_in: float):
+        # self.translation = self.translation.Rotate(angle_in)
+        self.angle = angle_in
+
     def ScaleIndependent(self, scale_in_x: float, scale_in_y: float):
         self.scale_x *= scale_in_x
         self.scale_y *= scale_in_y
@@ -378,7 +421,11 @@ class Drawable:
         self.translation.y *= scale_in_y
 
     def Render(self, gfx: Graphics):
+        cos_theta = cos(self.angle)
+        sin_theta = sin(self.angle)
+
         for i in range(len(self.model)):
+            self.model[i] = self.model[i].RotateCosTSinT(cos_theta, sin_theta)
             self.model[i].x *= self.scale_x
             self.model[i].y *= self.scale_y
             self.model[i] += self.translation
@@ -403,6 +450,7 @@ class Camera:
     def __init__(self, coordinate_transformer: CoordinateTransformer):
         self.position = Vec2()
         self.zoom = 1.0
+        # self.angle = 0.0
         self.ct = coordinate_transformer
 
     def GetPosition(self): return self.position
@@ -413,7 +461,22 @@ class Camera:
     def Zoom(self, val: float):
         self.zoom *= val
 
+    # def Rotate(self, angle: float):
+    #     self.angle += angle
+
     def GetZoomLevel(self): return self.zoom
+
+    def ScreenToWorldCoordinate(self, c: Vec2):
+        if self.zoom == 0:
+            raise ValueError("Camera zoom cannot be zero.")
+
+        sw = self.ct.gfx.surface.GetFrameWidth()
+        sh = self.ct.gfx.surface.GetFrameHeight()
+        zoom_factor = 1.0 / self.zoom
+
+        wx = self.position.x + (c.x - sw / 2) * zoom_factor
+        wy = self.position.y - (c.y - sh / 2) * zoom_factor
+        return Vec2(wx, wy)
 
     def GetViewportRect(self) -> Rect:
         zoom_factor = 1.0 / self.zoom
@@ -422,6 +485,7 @@ class Camera:
         return Rect.FromWH(self.position, viewport_w, viewport_h)
 
     def Draw(self, drawable: Drawable):
+        # drawable.Rotate(self.angle)
         drawable.Translate(-self.position)
         drawable.Scale(self.zoom)
         self.ct.Draw(drawable)
@@ -438,7 +502,7 @@ class Scene(ABC):
         self.CompsSetupComplete()
 
     @abstractmethod
-    def Update(self, key: Union[str, None], mouse_stat: tuple[tuple[int, int], bool, bool], dt: float): pass
+    def Update(self, key: Union[str, None], mouse_stat: tuple[Vec2, bool, bool], dt: float): pass
 
     @abstractmethod
     def Draw(self): pass
@@ -492,6 +556,7 @@ class Entity(ABC):
     def __init__(self, model: list[Vec2], bbox: Union[Rect, None], position: Vec2, color: Color):
         self.model = model
         self.bbox: Union[Rect, None] = bbox
+        self.angle = 0.0
         self.position = position
         self.scale = 1.0
         self.color = color
@@ -503,9 +568,17 @@ class Entity(ABC):
         return self.position
 
     def SetPosition(self, position: Vec2):
-        self.position = position 
+        if self.bbox is not None: self.bbox.SetPosition(position)
+        self.position = position
+
+    def SetColor(self, color: Color):
+        self.color = color
+
+    def RotateBy(self, angle: float):
+        self.angle += angle
 
     def TranslateBy(self, offset: Vec2):
+        if self.bbox is not None: self.bbox.TranslateBy(offset)
         self.position += offset
 
     def ScaleBy(self, val: float):
@@ -516,6 +589,9 @@ class Entity(ABC):
 
     def GetDrawable(self):
         drawable = Drawable(deepcopy(self.model), self.color)
+
+        drawable.Rotate(self.angle)
         drawable.Scale(self.scale)
         drawable.Translate(self.position)
+
         return drawable

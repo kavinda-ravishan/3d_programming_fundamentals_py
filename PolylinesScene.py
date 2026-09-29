@@ -1,15 +1,15 @@
 from typing import Union
-from math import cos, sin
+from math import cos, sin, pi
 from random import randint
 from Utils import Vec2, Rect, Color, Scene, Entity
 
 class Star(Entity):
-    def __init__(self, inner_radius: float, outer_radius: float, n_flares: int, position: Vec2):
+    def __init__(self, inner_radius: float, outer_radius: float, n_flares: int, position: Vec2, color: Color):
         super().__init__(
             Star.Make(inner_radius, outer_radius, n_flares), 
             Star.BoundingBox(inner_radius, outer_radius, position), 
             position, 
-            Color.Yellow
+            color
         )
         self.radius =  max(outer_radius, inner_radius)
         self.position = position
@@ -58,54 +58,98 @@ class PolylinesScene(Scene):
     def __init__(self):
         super().__init__()
         self.entities = PolylinesScene.GenerateEntities()
+        self.selected_ids: list[int] = []
 
     def CompsSetupComplete(self): ...
 
     @staticmethod
     def GenerateEntities():
-        entities: list[Entity] = []
-        stars: list[Star] = []
-        n_max_stars = 100
-        max_reject_count = 100
-        reject_count = 0
-        while n_max_stars > len(stars):
-            new_star = Star(*Star.GetRandParams(), Star.GetRandPos())
+        entities: list[Entity] = [
+            Star(100.0, 200.0, 6, Vec2(0, 0), Color.Yellow),
+            Star(50.0, 100.0, 8, Vec2(300, 400), Color.Yellow)
+        ]
+        # stars: list[Star] = []
+        # n_max_stars = 100
+        # max_reject_count = 100
+        # reject_count = 0
+        # while n_max_stars > len(stars):
+        #     new_star = Star(*Star.GetRandParams(), Star.GetRandPos(), Color.Yellow)
 
-            rejected = False
-            for old_star in stars:
-                if (old_star.GetPosition() - new_star.GetPosition()).Len() < (old_star.GetRadius() + new_star.GetRadius()):
-                    reject_count += 1
-                    rejected = True
+        #     rejected = False
+        #     for old_star in stars:
+        #         if (old_star.GetPosition() - new_star.GetPosition()).Len() < (old_star.GetRadius() + new_star.GetRadius()):
+        #             reject_count += 1
+        #             rejected = True
 
-            if not rejected:
-                stars.append(new_star)
-                reject_count = 0
-            elif reject_count > max_reject_count:
-                break
+        #     if not rejected:
+        #         stars.append(new_star)
+        #         reject_count = 0
+        #     elif reject_count > max_reject_count:
+        #         break
 
-        for star in stars:
-            entities.append(star)
+        # for star in stars:
+        #     entities.append(star)
 
         return entities
 
-    def Update(self, key: Union[str, None], mouse_stat: tuple[tuple[int, int], bool, bool], dt: float):
-        # m_x = mouse_stat[0][0]
-        # m_y = mouse_stat[0][1]
-        # m_lb = mouse_stat[1]
-        # m_rb = mouse_stat[2]
+    def Update(self, key: Union[str, None], mouse_stat: tuple[Vec2, bool, bool], dt: float):
+        m_c = mouse_stat[0]
+        m_lb = mouse_stat[1]
+        m_rb = mouse_stat[2]
 
         speed = 10.0
+        zoom_out_factor = 0.95
+        zoom_in_factor = 1.05
+
         camera = self.camera
         if camera is None:
             raise Exception("Camera is not initialized for this scene.")
+
 
         if 'w' == key: camera.MoveBy(Vec2(0.0, speed))
         elif 's' == key: camera.MoveBy(Vec2(0.0, -speed))
         elif 'd' == key: camera.MoveBy(Vec2(speed, 0.0))
         elif 'a' == key: camera.MoveBy(Vec2(-speed, 0.0))
 
-        elif 'q' == key: camera.Zoom(0.95)
-        elif 'e' == key: camera.Zoom(1.05)
+        elif 'q' == key: camera.Zoom(zoom_out_factor)
+        elif 'e' == key: camera.Zoom(zoom_in_factor)
+
+        # elif 'z' == key: camera.Rotate(pi/10)
+
+        elif m_lb:
+            m_c_w = camera.ScreenToWorldCoordinate(m_c)
+            for i in range(len(self.entities)):
+                bbox = self.entities[i].GetBoundingBox()
+                if bbox is not None and bbox.PointContain(m_c_w):
+                    if i not in self.selected_ids:
+                        self.entities[i].SetColor(Color.Red)
+                        self.selected_ids.append(i)
+        elif m_rb:
+            for i in self.selected_ids:
+                self.entities[i].SetColor(Color.Yellow)
+            self.selected_ids.clear()
+
+        elif 'x' == key:
+            for i in self.selected_ids:
+                self.entities[i].RotateBy(pi/10)
+        elif 'r' == key:
+            for i in self.selected_ids:
+                self.entities[i].ScaleBy(zoom_out_factor)
+        elif 'y' == key:
+            for i in self.selected_ids:
+                self.entities[i].ScaleBy(zoom_in_factor)
+        elif 't' == key:
+            for i in self.selected_ids:
+                self.entities[i].TranslateBy(Vec2(0.0, speed))
+        elif 'g' == key:
+            for i in self.selected_ids:
+                self.entities[i].TranslateBy(Vec2(0.0, -speed))
+        elif 'f' == key:
+            for i in self.selected_ids:
+                self.entities[i].TranslateBy(Vec2(-speed, 0.0))
+        elif 'h' == key:
+            for i in self.selected_ids:
+                self.entities[i].TranslateBy(Vec2(speed, 0.0))
     
     def Draw(self):
         camera = self.camera
@@ -117,3 +161,4 @@ class PolylinesScene(Scene):
             bbox = entity.GetBoundingBox()
             if bbox is None or vp_rect.Intersects(bbox):
                 camera.Draw(entity.GetDrawable())
+            
