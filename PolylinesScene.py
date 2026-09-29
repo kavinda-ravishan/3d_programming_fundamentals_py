@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, Final
 from math import cos, sin, pi
 from random import randint
 from Utils import Vec2, Rect, Color, Scene, Entity
@@ -64,59 +64,46 @@ class PolylinesScene(Scene):
 
     @staticmethod
     def GenerateEntities():
-        entities: list[Entity] = [
-            Star(100.0, 200.0, 6, Vec2(0, 0), Color.Yellow),
-            Star(50.0, 100.0, 8, Vec2(300, 400), Color.Yellow)
-        ]
-        # stars: list[Star] = []
-        # n_max_stars = 100
-        # max_reject_count = 100
-        # reject_count = 0
-        # while n_max_stars > len(stars):
-        #     new_star = Star(*Star.GetRandParams(), Star.GetRandPos(), Color.Yellow)
+        entities: list[Entity] = []
+        stars: list[Star] = []
+        n_max_stars = 100
+        max_reject_count = 100
+        reject_count = 0
+        while n_max_stars > len(stars):
+            new_star = Star(*Star.GetRandParams(), Star.GetRandPos(), Color.Yellow)
 
-        #     rejected = False
-        #     for old_star in stars:
-        #         if (old_star.GetPosition() - new_star.GetPosition()).Len() < (old_star.GetRadius() + new_star.GetRadius()):
-        #             reject_count += 1
-        #             rejected = True
+            rejected = False
+            for old_star in stars:
+                if (old_star.GetPosition() - new_star.GetPosition()).Len() < (old_star.GetRadius() + new_star.GetRadius()):
+                    reject_count += 1
+                    rejected = True
 
-        #     if not rejected:
-        #         stars.append(new_star)
-        #         reject_count = 0
-        #     elif reject_count > max_reject_count:
-        #         break
+            if not rejected:
+                stars.append(new_star)
+                reject_count = 0
+            elif reject_count > max_reject_count:
+                break
 
-        # for star in stars:
-        #     entities.append(star)
+        for star in stars:
+            entities.append(star)
 
         return entities
 
     def Update(self, key: Union[str, None], mouse_stat: tuple[Vec2, bool, bool], dt: float):
-        m_c = mouse_stat[0]
-        m_lb = mouse_stat[1]
-        m_rb = mouse_stat[2]
+        m_c: Final[Vec2] = mouse_stat[0]
+        m_lb: Final[bool] = mouse_stat[1]
+        m_rb: Final[bool] = mouse_stat[2]
 
-        speed = 10.0
-        zoom_out_factor = 0.95
-        zoom_in_factor = 1.05
+        move_speed: Final[float] = 10.0
+        rotational_speed: Final[float] = pi/100
+        zoom_out_factor: Final[float] = 0.95
+        zoom_in_factor: Final[float] = 1.05
 
         camera = self.camera
         if camera is None:
             raise Exception("Camera is not initialized for this scene.")
 
-
-        if 'w' == key: camera.MoveBy(Vec2(0.0, speed))
-        elif 's' == key: camera.MoveBy(Vec2(0.0, -speed))
-        elif 'd' == key: camera.MoveBy(Vec2(speed, 0.0))
-        elif 'a' == key: camera.MoveBy(Vec2(-speed, 0.0))
-
-        elif 'q' == key: camera.Zoom(zoom_out_factor)
-        elif 'e' == key: camera.Zoom(zoom_in_factor)
-
-        # elif 'z' == key: camera.Rotate(pi/10)
-
-        elif m_lb:
+        if m_lb:
             m_c_w = camera.ScreenToWorldCoordinate(m_c)
             for i in range(len(self.entities)):
                 bbox = self.entities[i].GetBoundingBox()
@@ -129,28 +116,41 @@ class PolylinesScene(Scene):
                 self.entities[i].SetColor(Color.Yellow)
             self.selected_ids.clear()
 
-        elif 'x' == key:
-            for i in self.selected_ids:
-                self.entities[i].RotateBy(pi/10)
-        elif 'r' == key:
-            for i in self.selected_ids:
-                self.entities[i].ScaleBy(zoom_out_factor)
-        elif 'y' == key:
-            for i in self.selected_ids:
-                self.entities[i].ScaleBy(zoom_in_factor)
-        elif 't' == key:
-            for i in self.selected_ids:
-                self.entities[i].TranslateBy(Vec2(0.0, speed))
-        elif 'g' == key:
-            for i in self.selected_ids:
-                self.entities[i].TranslateBy(Vec2(0.0, -speed))
-        elif 'f' == key:
-            for i in self.selected_ids:
-                self.entities[i].TranslateBy(Vec2(-speed, 0.0))
-        elif 'h' == key:
-            for i in self.selected_ids:
-                self.entities[i].TranslateBy(Vec2(speed, 0.0))
-    
+        if not self.selected_ids:
+            if 'w' == key: camera.MoveBy(Vec2(0.0, move_speed).Rotate(camera.GetAngle()))
+            elif 's' == key: camera.MoveBy(Vec2(0.0, -move_speed).Rotate(camera.GetAngle()))
+            elif 'd' == key: camera.MoveBy(Vec2(move_speed, 0.0).Rotate(camera.GetAngle()))
+            elif 'a' == key: camera.MoveBy(Vec2(-move_speed, 0.0).Rotate(camera.GetAngle()))
+            elif 'q' == key: camera.Zoom(zoom_out_factor)
+            elif 'e' == key: camera.Zoom(zoom_in_factor)
+            elif 'z' == key: camera.RotateBy(rotational_speed)
+            elif 'x' == key: camera.RotateBy(-rotational_speed)
+        else:
+            if 'w' == key:
+                for i in self.selected_ids:
+                    self.entities[i].TranslateBy(Vec2(0.0, move_speed).Rotate(camera.GetAngle()))
+            elif 's' == key:
+                for i in self.selected_ids:
+                    self.entities[i].TranslateBy(Vec2(0.0, -move_speed).Rotate(camera.GetAngle()))
+            elif 'd' == key:
+                for i in self.selected_ids:
+                    self.entities[i].TranslateBy(Vec2(move_speed, 0.0).Rotate(camera.GetAngle()))
+            elif 'a' == key:
+                for i in self.selected_ids:
+                    self.entities[i].TranslateBy(Vec2(-move_speed, 0.0).Rotate(camera.GetAngle()))
+            elif 'q' == key:
+                for i in self.selected_ids:
+                    self.entities[i].ScaleBy(zoom_out_factor)
+            elif 'e' == key:
+                for i in self.selected_ids:
+                    self.entities[i].ScaleBy(zoom_in_factor)
+            elif 'z' == key:
+                for i in self.selected_ids:
+                    self.entities[i].RotateBy(rotational_speed)
+            elif 'x' == key:
+                for i in self.selected_ids:
+                    self.entities[i].RotateBy(-rotational_speed)
+
     def Draw(self):
         camera = self.camera
         if camera is None:
