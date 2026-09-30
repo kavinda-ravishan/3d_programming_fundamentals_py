@@ -11,6 +11,10 @@ class Vec2:
         self.x = float(x)
         self.y = float(y)
 
+    @classmethod
+    def FromVec3(cls, vec: Vec3):
+        return cls(vec.x, vec.y)
+
     def __repr__(self):
         return f"Vec2({self.x:.3f}, {self.y:.3f})"
 
@@ -92,76 +96,192 @@ class Vec2:
         
         return Vec2(x, y)
 
-class Mat2:
-    def __init__(self, mat: tuple[tuple[Union[int, float], Union[int, float]], tuple[Union[int, float], Union[int, float]]] = ((0, 0), (0, 0))):
+class Vec3:
+    def __init__(self, x: float = 0, y: float = 0, w: float = 0):
+        self.x = float(x)
+        self.y = float(y)
+        self.w = float(w)
+
+    @classmethod
+    def FromVec2(cls, vec: Vec2):
+        return cls(vec.x, vec.y, 1.0)
+
+    def __repr__(self):
+        return f"Vec3({self.x:.3f}, {self.y:.3f}, {self.w:.3f})"
+
+    def __setattr__(self, name: str, value: float):
+        if name in {"x", "y", "w"}:
+            super().__setattr__(name, float(value))
+        else:
+            super().__setattr__(name, value)
+
+    @overload
+    def __add__(self, other: Vec3) -> Vec3: ...
+
+    @overload
+    def __add__(self, other: Union[int, float]) -> Vec3: ...
+
+    def __add__(self, other: Union[Vec3, int, float]):
+        if isinstance(other, Vec3):
+            return Vec3(self.x + other.x, self.y + other.y, self.w + other.w)
+        else:
+            return Vec3(self.x + other, self.y + other, self.w + other)
+
+    @overload
+    def __sub__(self, other: Vec3) -> Vec3: ...
+
+    @overload
+    def __sub__(self, other: Union[int, float]) -> Vec3: ...
+
+    def __sub__(self, other: Union[Vec3, int, float]):
+        if isinstance(other, Vec3):
+            return Vec3(self.x - other.x, self.y - other.y, self.w - other.w)
+        else:
+            return Vec3(self.x - other, self.y - other, self.w - other)
+
+    def __neg__(self):
+        return Vec3(-self.x, -self.y, -self.w)
+
+    @overload
+    def __mul__(self, other: Vec3) -> float: ...
+
+    @overload
+    def __mul__(self, other: Union[int, float]) -> Vec3: ...
+
+    def __mul__(self, other: Union[Vec3, int, float]) -> Union[Vec3, int, float]:
+        if isinstance(other, Vec3): # vec-vec dot product
+            return (self.x * other.x) + (self.y * other.y) + (self.w * other.w)
+        else: # scalar-vec multiplication
+            return Vec3(self.x * other, self.y * other, self.w * other)
+
+    def __rmul__(self, other: Union[int, float]):
+        return Vec3(self.x * other, self.y * other, self.w * other)
+
+    def __truediv__(self, other: Union[Vec3, int, float]):
+        if isinstance(other, Vec3): # element-wise division
+            return Vec3(self.x / other.x, self.y / other.y, self.w / other.w)
+        else: # scalar division
+            return Vec3(self.x / other, self.y / other, self.w / other)
+
+    def Mul(self, other: Union[Vec3, int, float]):
+        if isinstance(other, Vec3): # vec-vec multiplication
+            return Vec3(self.x * other.x, self.y * other.y, self.w * other.w)
+        else: # scalar-vec multiplication
+            return Vec3(self.x * other, self.y * other, self.w * other)
+
+    def Len2D(self):
+        return sqrt((self.x * self.x) + (self.y * self.y))
+
+    def Normalize2D(self):
+        length = self.Len2D()
+        if length == 0:
+            raise ZeroDivisionError("Cannot normalize a vector of length 0.")
+        return Vec3(self.x / length, self.y / length, self.w)
+
+    def ClockwiseOrthogonal2D(self):
+        return Vec3(self.y, -self.x, self.w)
+
+    def CounterClockwiseOrthogonal2D(self):
+        return Vec3(-self.y, self.x, self.w)
+
+    def Rotate2D(self, angle: float):
+        cos_theta = cos(angle)
+        sin_theta = sin(angle)
+
+        x = (self.x*cos_theta) - (self.y*sin_theta)
+        y = (self.x*sin_theta) + (self.y*cos_theta)
+        
+        return Vec3(x, y, self.w)
+
+    def RotateCosTSinT2D(self, cos_theta: float, sin_theta: float):
+        x = (self.x*cos_theta) - (self.y*sin_theta)
+        y = (self.x*sin_theta) + (self.y*cos_theta)
+
+        return Vec3(x, y, self.w)
+        
+class Mat3:
+    def __init__(self, mat: \
+                 tuple[\
+                     tuple[Union[int, float], Union[int, float], Union[int, float]], \
+                     tuple[Union[int, float], Union[int, float], Union[int, float]], \
+                     tuple[Union[int, float], Union[int, float], Union[int, float]], \
+                    ] = \
+                    ((0, 0, 0), (0, 0, 0), (0, 0, 0))):
         # [row][col]
         self.mat: list[list[Union[int, float]]] = [list(row) for row in mat]
 
     def __repr__(self) -> str:
-        return f"Mat2([\n  {self.mat[0]},\n  {self.mat[1]}\n])"
+        return f"Mat3([\n  {self.mat[0]},\n  {self.mat[1]}\n  {self.mat[2]}\n])"
 
     def ScalerMul(self, scaler: Union[int, float]):
-        new_mat = Mat2()
+        new_mat = Mat3()
         for r, row in enumerate(self.mat):
             for c, val in enumerate(row):
                 new_mat.mat[r][c] = scaler * val
 
         return new_mat
 
-    def VecMul(self, vec: Vec2):
-        new_vec = Vec2()
+    def VecMul(self, vec: Vec3):
+        new_vec = Vec3()
             
-        new_vec.x = (self.mat[0][0] * vec.x) + (self.mat[0][1] * vec.y)
-        new_vec.y = (self.mat[1][0] * vec.x) + (self.mat[1][1] * vec.y)
+        new_vec.x = (self.mat[0][0] * vec.x) + (self.mat[0][1] * vec.y) + (self.mat[0][2] * vec.w)
+        new_vec.y = (self.mat[1][0] * vec.x) + (self.mat[1][1] * vec.y) + (self.mat[1][2] * vec.w)
+        new_vec.w = (self.mat[2][0] * vec.x) + (self.mat[2][1] * vec.y) + (self.mat[2][2] * vec.w)
 
         return new_vec
 
-    def MatMul(self, mat: Mat2):
-        new_mat = Mat2()
+    def MatMul(self, mat: Mat3):
+        new_mat = Mat3()
 
-        for row_left in range(2):
-            for col_rigth in range(2):
-                for i in range(2):
+        for row_left in range(3):
+            for col_rigth in range(3):
+                for i in range(3):
                     new_mat.mat[row_left][col_rigth] += self.mat[row_left][i] * mat.mat[i][col_rigth]
 
         return new_mat
 
     @overload
-    def __mul__(self, other: Mat2) -> Vec2: ...
+    def __mul__(self, other: Mat3) -> Mat3: ...
 
     @overload
-    def __mul__(self, other: Vec2) -> Vec2: ...
+    def __mul__(self, other: Vec3) -> Vec3: ...
 
     @overload
-    def __mul__(self, other: Union[int, float]) -> Vec2: ...
+    def __mul__(self, other: Union[int, float]) -> Vec3: ...
 
-    def __mul__(self, other: Union[Mat2, Vec2, int, float]) -> Union[Vec2, Mat2]:
-        if isinstance(other, Mat2): # Mat-Mat multiplication
+    def __mul__(self, other: Union[Mat3, Vec3, int, float]) -> Union[Vec3, Mat3]:
+        if isinstance(other, Mat3): # Mat-Mat multiplication
             return self.MatMul(other)
-        elif isinstance(other, Vec2): # Mat-vec multiplication
+        elif isinstance(other, Vec3): # Mat-vec multiplication
             return self.VecMul(other)
         else: # scalar-Mat multiplication
             return self.ScalerMul(other)
 
     @staticmethod
-    def Scale(factor: Union[int, float]):
-        return Mat2(
+    def ScaleIndependent(x: Union[int, float], y: Union[int, float]):
+        return Mat3(
             (
-                (factor, 0), 
-                (0, factor)
+                (x, 0, 0), 
+                (0, y, 0), 
+                (0, 0, 1)
             )
         )
 
     @staticmethod
+    def Scale(factor: Union[int, float]):
+        return Mat3.ScaleIndependent(factor, factor)
+
+    @staticmethod
     def Identity():
-        return Mat2.Scale(1)
+        return Mat3.Scale(1)
 
     @staticmethod
     def FlipY():
-        return Mat2(
+        return Mat3(
             (
-                (1, 0), 
-                (0, -1)
+                (1, 0, 0), 
+                (0, -1, 0), 
+                (0, 0, 1)
             )
         )
 
@@ -170,19 +290,41 @@ class Mat2:
         cos_theta = cos(theta)
         sin_theta = sin(theta)
         
-        return Mat2(
+        return Mat3(
             (
-                (cos_theta, -sin_theta), 
-                (sin_theta, cos_theta)
+                (cos_theta, -sin_theta, 0), 
+                (sin_theta, cos_theta, 0), 
+                (0, 0, 1)
             )
         )
 
     @staticmethod
     def RotationCosTSinT(cos_theta: float, sin_theta: float):
-        return Mat2(
+        return Mat3(
             (
-                (cos_theta, -sin_theta), 
-                (sin_theta, cos_theta)
+                (cos_theta, -sin_theta, 0), 
+                (sin_theta, cos_theta, 0), 
+                (0, 0, 0)
+            )
+        )
+
+    @staticmethod
+    def Translation(x: Union[int, float], y: Union[int, float]):
+        return Mat3(
+            (
+                (1, 0, x), 
+                (0, 1, y), 
+                (0, 0, 1)
+            )
+        )
+
+    @staticmethod
+    def TranslationVec(vec: Vec2):
+        return Mat3(
+            (
+                (1, 0, vec.x), 
+                (0, 1, vec.y), 
+                (0, 0, 1)
             )
         )
 
@@ -493,40 +635,16 @@ class Graphics:
 class Drawable:
     def __init__(self, model: list[Vec2], color: Color):
         self.model: list[Vec2] = model
-        self.translation: Vec2 = Vec2(0.0, 0.0)
-        self.scale_x: float = 1.0
-        self.scale_y: float = 1.0
-        self.angle: float = 0.0
+        self.transform: Mat3 = Mat3.Identity()
         self.color: Color = color
 
-    def Translate(self, translation_in: Vec2):
-        self.translation += translation_in
-
-    def Scale(self, scale_in: float):
-        self.scale_x *= scale_in
-        self.scale_y *= scale_in
-        self.translation *= scale_in
-
-    def Rotate(self, angle_in: float):
-        self.translation = self.translation.Rotate(angle_in)
-        self.angle = (self.angle + angle_in) % tau
-
-
-    def ScaleIndependent(self, scale_in_x: float, scale_in_y: float):
-        self.scale_x *= scale_in_x
-        self.scale_y *= scale_in_y
-        self.translation.x *= scale_in_x
-        self.translation.y *= scale_in_y
+    def ApplyTransformation(self, transformation: Mat3):
+        self.transform = transformation * self.transform
 
     def Render(self, gfx: Graphics):
-        cos_theta = cos(self.angle)
-        sin_theta = sin(self.angle)
 
-        for i in range(len(self.model)):
-            self.model[i] = self.model[i].RotateCosTSinT(cos_theta, sin_theta)
-            self.model[i].x *= self.scale_x
-            self.model[i].y *= self.scale_y
-            self.model[i] += self.translation
+        for i, v in enumerate(self.model):
+            self.model[i] = Vec2.FromVec3(self.transform * Vec3.FromVec2(v))
 
         gfx.DrawClosePolyline(self.model, self.color)
 
@@ -540,8 +658,11 @@ class CoordinateTransformer:
         # - In screen space, the origin (0,0) is at the top-left corner.
         # - The +Y axis points downward, so we flip the Y values.
         # - Then we offset all points so that the origin is centered in the frame.
-        drawable.ScaleIndependent(1.0, -1.0)
-        drawable.Translate(offset)
+        # drawable.ScaleIndependent(1.0, -1.0)
+        # drawable.Translate(offset)
+        drawable.ApplyTransformation(
+            Mat3.TranslationVec(offset) * Mat3.ScaleIndependent(1.0, -1.0)
+        )
         drawable.Render(self.gfx)
 
 class Camera:
@@ -588,9 +709,9 @@ class Camera:
         return Rect.FromWH(self.position, diagonal, diagonal)
 
     def Draw(self, drawable: Drawable):
-        drawable.Translate(-self.position)
-        drawable.Rotate(self.angle)
-        drawable.Scale(self.zoom)
+        drawable.ApplyTransformation(
+            Mat3.Scale(self.zoom) * Mat3.Rotation(self.angle) * Mat3.TranslationVec(-self.position)
+        )
         self.ct.Draw(drawable)
 
 class Scene(ABC):
@@ -692,9 +813,8 @@ class Entity(ABC):
 
     def GetDrawable(self):
         drawable = Drawable(deepcopy(self.model), self.color)
-
-        drawable.Rotate(self.angle)
-        drawable.Scale(self.scale)
-        drawable.Translate(self.position)
+        drawable.ApplyTransformation(
+            Mat3.TranslationVec(self.position) * Mat3.Scale(self.scale) * Mat3.Rotation(self.angle)
+        )
 
         return drawable

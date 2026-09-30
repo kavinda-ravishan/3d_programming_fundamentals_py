@@ -46,6 +46,20 @@ class Star(Entity):
         return (randint(rad_min, rad_max), randint(rad_min, rad_max), randint(n_flares_min, n_flares_max))
 
     @staticmethod
+    def GetRandomColor() -> Color:
+        colors = [
+            Color.White,
+            Color.Gray,
+            Color.LightGray,
+            Color.Green,
+            Color.Blue,
+            Color.Yellow,
+            Color.Cyan,
+            Color.Magenta
+        ]
+        return colors[randint(0, len(colors) - 1)]
+
+    @staticmethod
     def GetRandPos() -> Vec2:
         x_min = -1000
         x_max = 1000
@@ -58,7 +72,9 @@ class PolylinesScene(Scene):
     def __init__(self):
         super().__init__()
         self.entities = PolylinesScene.GenerateEntities()
+
         self.selected_ids: list[int] = []
+        self.selected_color_ids: list[Color] = []
 
     def CompsSetupComplete(self): ...
 
@@ -70,7 +86,7 @@ class PolylinesScene(Scene):
         max_reject_count = 100
         reject_count = 0
         while n_max_stars > len(stars):
-            new_star = Star(*Star.GetRandParams(), Star.GetRandPos(), Color.Yellow)
+            new_star = Star(*Star.GetRandParams(), Star.GetRandPos(), Star.GetRandomColor())
 
             rejected = False
             for old_star in stars:
@@ -109,12 +125,14 @@ class PolylinesScene(Scene):
                 bbox = self.entities[i].GetBoundingBox()
                 if bbox is not None and bbox.PointContain(m_c_w):
                     if i not in self.selected_ids:
-                        self.entities[i].SetColor(Color.Red)
                         self.selected_ids.append(i)
+                        self.selected_color_ids.append(self.entities[i].color)
+                        self.entities[i].SetColor(Color.Red)
         elif m_rb:
-            for i in self.selected_ids:
-                self.entities[i].SetColor(Color.Yellow)
+            for i, entity_id in enumerate(self.selected_ids):
+                self.entities[entity_id].SetColor(self.selected_color_ids[i])
             self.selected_ids.clear()
+            self.selected_color_ids.clear()
 
         if not self.selected_ids:
             if 'w' == key: camera.MoveBy(Vec2(0.0, move_speed).Rotate(-camera.GetAngle()))
