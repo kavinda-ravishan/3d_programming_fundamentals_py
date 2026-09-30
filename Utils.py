@@ -92,6 +92,100 @@ class Vec2:
         
         return Vec2(x, y)
 
+class Mat2:
+    def __init__(self, mat: tuple[tuple[Union[int, float], Union[int, float]], tuple[Union[int, float], Union[int, float]]] = ((0, 0), (0, 0))):
+        # [row][col]
+        self.mat: list[list[Union[int, float]]] = [list(row) for row in mat]
+
+    def __repr__(self) -> str:
+        return f"Mat2([\n  {self.mat[0]},\n  {self.mat[1]}\n])"
+
+    def ScalerMul(self, scaler: Union[int, float]):
+        new_mat = Mat2()
+        for r, row in enumerate(self.mat):
+            for c, val in enumerate(row):
+                new_mat.mat[r][c] = scaler * val
+
+        return new_mat
+
+    def VecMul(self, vec: Vec2):
+        new_vec = Vec2()
+            
+        new_vec.x = (self.mat[0][0] * vec.x) + (self.mat[0][1] * vec.y)
+        new_vec.y = (self.mat[1][0] * vec.x) + (self.mat[1][1] * vec.y)
+
+        return new_vec
+
+    def MatMul(self, mat: Mat2):
+        new_mat = Mat2()
+
+        for row_left in range(2):
+            for col_rigth in range(2):
+                for i in range(2):
+                    new_mat.mat[row_left][col_rigth] += self.mat[row_left][i] * mat.mat[i][col_rigth]
+
+        return new_mat
+
+    @overload
+    def __mul__(self, other: Mat2) -> Vec2: ...
+
+    @overload
+    def __mul__(self, other: Vec2) -> Vec2: ...
+
+    @overload
+    def __mul__(self, other: Union[int, float]) -> Vec2: ...
+
+    def __mul__(self, other: Union[Mat2, Vec2, int, float]) -> Union[Vec2, Mat2]:
+        if isinstance(other, Mat2): # Mat-Mat multiplication
+            return self.MatMul(other)
+        elif isinstance(other, Vec2): # Mat-vec multiplication
+            return self.VecMul(other)
+        else: # scalar-Mat multiplication
+            return self.ScalerMul(other)
+
+    @staticmethod
+    def Scale(factor: Union[int, float]):
+        return Mat2(
+            (
+                (factor, 0), 
+                (0, factor)
+            )
+        )
+
+    @staticmethod
+    def Identity():
+        return Mat2.Scale(1)
+
+    @staticmethod
+    def FlipY():
+        return Mat2(
+            (
+                (1, 0), 
+                (0, -1)
+            )
+        )
+
+    @staticmethod
+    def Rotation(theta: float):
+        cos_theta = cos(theta)
+        sin_theta = sin(theta)
+        
+        return Mat2(
+            (
+                (cos_theta, -sin_theta), 
+                (sin_theta, cos_theta)
+            )
+        )
+
+    @staticmethod
+    def RotationCosTSinT(cos_theta: float, sin_theta: float):
+        return Mat2(
+            (
+                (cos_theta, -sin_theta), 
+                (sin_theta, cos_theta)
+            )
+        )
+
 class Rect:
     def __init__(self, left: float, right: float, top: float, bottom: float):
         self.left: float = float(left)
