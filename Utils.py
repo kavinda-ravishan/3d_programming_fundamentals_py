@@ -1,6 +1,6 @@
-from __future__ import annotations
 from abc import ABC, abstractmethod
-from typing import Any, Union
+from typing import Any, Union, Final
+from copy import deepcopy
 import cv2
 import numpy as np
 
@@ -8,6 +8,10 @@ class Vec2:
     def __init__(self, x: float = 0, y: float = 0):
         self.x = float(x)
         self.y = float(y)
+
+    @classmethod
+    def FromVec2(cls, vec: "Vec2"):
+        cls(vec.x, vec.y)
 
     def __repr__(self):
         return f"Vec2({self.x:.3f}, {self.y:.3f})"
@@ -17,6 +21,47 @@ class Vec2:
             super().__setattr__(name, float(value))
         else:
             super().__setattr__(name, value)
+
+    def __add__(self, other: Union["Vec2", int, float]):
+        if isinstance(other, Vec2):
+            return Vec2(self.x + other.x, self.y + other.y)
+        else:
+            return Vec2(self.x + other, self.y + other)
+
+    def dot(self, other: "Vec2"):
+        return (self.x * other.x) + (self.y * other.y)
+
+class Vec3(Vec2):
+    def __init__(self, x: float = 0, y: float = 0, z: float = 0):
+        super().__init__(x, y)
+        self.z = float(z)
+
+    @classmethod
+    def FromVec3(cls, vec: "Vec3"):
+        return cls(vec.x, vec.y, vec.z)
+
+    def __repr__(self):
+        return f"Vec3({self.x:.3f}, {self.y:.3f}, {self.z:.3f})"
+
+    def __setattr__(self, name: str, value: float):
+        if name in {"x", "y", "z"}:
+            super().__setattr__(name, float(value))
+        else:
+            super().__setattr__(name, value)
+
+    def __add__(self, other: Union["Vec2", "Vec3", int, float]):
+        if isinstance(other, Vec3):
+            return Vec3(self.x + other.x, self.y + other.y, self.z + other.z)
+        elif isinstance(other, Vec2):
+            raise TypeError("Vec3 addition does not support Vec2 operands; use Vec3 instead.")
+        else:
+            return Vec3(self.x + other, self.y + other, self.z + other)
+
+    def dot(self, other: Union[Vec2, "Vec3"]):
+        if isinstance(other, Vec3):
+            return (self.x * other.x) + (self.y * other.y) + (self.z * other.z)
+        else:
+            raise TypeError("Vec3.dot() requires a Vec3 instance.")
 
 class Color:
     White: "Color"
@@ -55,10 +100,52 @@ Color.Yellow = Color(255, 255, 0)
 Color.Cyan = Color(0, 255, 255)
 Color.Magenta = Color(255, 0, 255)
 
+# PC3 : Pre-cliped 3D space
+class PC3Transformer:
+    def __init__(self, screen_width: int, screen_height: int) -> None:
+        self.x_factor: Final[float] = screen_width / 2
+        self.y_factor: Final[float] = screen_height / 2
+
+    def Transform(self, vec: Vec3):
+        vec.x = (vec.x + 1.0) * self.x_factor
+        vec.y = (-vec.y + 1.0) * self.y_factor
+        return vec
+
+    def GetTransformed(self, vec: Vec3):
+        return self.Transform(Vec3.FromVec3(vec))
+
+class IndexedLineList:
+    def __init__(self, vertices: list[Vec3], indices: list[tuple[int, int]]) -> None:
+        self.vertices: Final[list[Vec3]] = vertices
+        self.indices: Final[list[tuple[int, int]]] = indices
+
+class Cube:
+    def __init__(self, size: float = 1.0) -> None:
+        self.vertices: list[Vec3] = []
+
+        side: Final[float] = size / 2.0
+        self.vertices.append( Vec3(-side,-side,-side) )
+        self.vertices.append( Vec3(side,-side,-side) )
+        self.vertices.append( Vec3(-side,side,-side) )
+        self.vertices.append( Vec3(side,side,-side) )
+        self.vertices.append( Vec3(-side,-side,side) )
+        self.vertices.append( Vec3(side,-side,side) )
+        self.vertices.append( Vec3(-side,side,side) )
+        self.vertices.append( Vec3(side,side,side) )
+
+    def GetLines(self) -> IndexedLineList:
+        return IndexedLineList( 
+            deepcopy(self.vertices), [
+                (0,1), (1,3), (3,2), (2,0),
+                (0,4), (1,5), (3,7), (2,6),
+                (4,5), (5,7), (7,6), (6,4)
+            ]
+        )
+
 class Surface:
     def __init__(self, width: int, height: int):
-        self.width = width
-        self.height = height
+        self.width: Final[int] = width
+        self.height: Final[int] = height
         self.canvas = np.zeros((self.height, self.width, 3), dtype="uint8")
 
     def GetCanvas(self):
@@ -104,7 +191,7 @@ class Keyboard:
     def __init__(self):
         self.key: Union[str, None] = None
         # Map special non-printable keys
-        self.special_keys = {
+        self.special_keys: Final[dict[int, str]] = {
             27: "esc",
             32: "space",
             13: "enter",
@@ -124,11 +211,11 @@ class Keyboard:
 class Graphics:
     def __init__(self, window_name: str, frame_width: int, frame_height: int, delay: int):
 
-        self.delay = delay
-        self.mouse = Mouse()
-        self.keyboard = Keyboard()
-        self.window_name = window_name
-        self.surface = Surface(frame_width, frame_height)
+        self.delay: Final[int] = delay
+        self.mouse: Final[Mouse] = Mouse()
+        self.keyboard: Final[Keyboard] = Keyboard()
+        self.window_name: Final[str] = window_name
+        self.surface: Final[Surface] = Surface(frame_width, frame_height)
 
         cv2.namedWindow(window_name)
         cv2.setMouseCallback(window_name, self.mouse.Callback)
@@ -211,6 +298,13 @@ class Graphics:
 class Scene(ABC):
     def __init__(self): ...
 
+    def Setup(self, gfx: Graphics):
+        self.gfx = gfx
+        self.SetupComplete()
+
+    @abstractmethod
+    def SetupComplete(self): ...
+
     @abstractmethod
     def Update(self, key: Union[str, None], mouse_stat: tuple[Vec2, bool, bool], dt: float): pass
 
@@ -219,14 +313,16 @@ class Scene(ABC):
 
 class Game:
     def __init__(self, frame_width: int, frame_height: int, fps: float, scenes : list[Scene]):
-        self.main_loop_active = True
-        window_name = "Canvas"
-        self.dt = 1.0 / fps
-        time_per_frame_ms = self.dt * 1000
-        self.gfx = Graphics(window_name, frame_width, frame_height, int(time_per_frame_ms))
+        self.main_loop_active: bool = True
+        window_name: Final[str] = "Canvas"
+        self.dt: Final[float] = 1.0 / fps
+        time_per_frame_ms: Final[float] = self.dt * 1000
+        self.gfx: Final[Graphics] = Graphics(window_name, frame_width, frame_height, int(time_per_frame_ms))
 
         self.c_scene_id = 0
         self.scenes = scenes
+        for scene in scenes:
+            scene.Setup(self.gfx)
 
     def UpdateModel(self):
         key = self.gfx.GetKey()
