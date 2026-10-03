@@ -6,8 +6,9 @@ from Utils import Vec2, Vec3, Mat3, Scene, PC3Transformer, Cube, Color, WrapAngl
 class SimpleSence(Scene):
     def __init__(self):
         super().__init__()
-        self.cube: Final[Cube] = Cube()
+        self.cube: Final[Cube] = Cube(1.0)
         self.d_thete: Final[float] = pi
+        self.offset_z: float = 2.0
         self.theta_x: float = 0.0
         self.theta_y: float = 0.0
         self.theta_z: float = 0.0
@@ -33,6 +34,10 @@ class SimpleSence(Scene):
             self.theta_y = WrapAngle(self.theta_y - (self.d_thete * dt))
         elif 'd' == key:
             self.theta_z = WrapAngle(self.theta_z - (self.d_thete * dt))
+        elif 'r' == key:
+            self.offset_z += (2.0 * dt)
+        elif 'f' == key:
+            self.offset_z -= (2.0 * dt)
 
     def Draw(self):
         if not hasattr(self, 'gfx'): return
@@ -44,7 +49,7 @@ class SimpleSence(Scene):
 
         for i, _ in enumerate(lines.vertices):
             lines.vertices[i] = lines.vertices[i] * rotation_matrix
-            lines.vertices[i] = lines.vertices[i] + Vec3(0.0, 0.0, 1.0)
+            lines.vertices[i] = lines.vertices[i] + Vec3(0.0, 0.0, self.offset_z)
             self.pc3.Transform(lines.vertices[i])
 
         for line in lines.indices:

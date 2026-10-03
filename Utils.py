@@ -41,6 +41,12 @@ class Vec2:
         else:
             return Vec2(self.x + other, self.y + other)
 
+    def __truediv__(self, other: Union["Vec2", int, float]):
+        if isinstance(other, Vec2):
+            return Vec2(self.x / other.x, self.y / other.y)
+        else:
+            return Vec2(self.x / other, self.y / other)
+
     def dot(self, other: "Vec2"):
         return (self.x * other.x) + (self.y * other.y)
 
@@ -56,9 +62,9 @@ class Vec3(Vec2):
     def MatMul(self, mat: "Mat3"):
         new_vec = Vec3()
             
-        new_vec.x = (mat[0][0] * self.x) + (mat[0][1] * self.y) + (mat[0][2] * self.z)
-        new_vec.y = (mat[1][0] * self.x) + (mat[1][1] * self.y) + (mat[1][2] * self.z)
-        new_vec.w = (mat[2][0] * self.x) + (mat[2][1] * self.y) + (mat[2][2] * self.z)
+        new_vec.x = (mat[0][0] * self.x) + (mat[1][0] * self.y) + (mat[2][0] * self.z)
+        new_vec.y = (mat[0][1] * self.x) + (mat[1][1] * self.y) + (mat[2][1] * self.z)
+        new_vec.z = (mat[0][2] * self.x) + (mat[1][2] * self.y) + (mat[2][2] * self.z)
 
         return new_vec
 
@@ -79,6 +85,12 @@ class Vec3(Vec2):
         new_vec.z = self.z * scaler
 
         return new_vec
+
+    def dot(self, other: Union[Vec2, "Vec3"]):
+        if isinstance(other, Vec3):
+            return (self.x * other.x) + (self.y * other.y) + (self.z * other.z)
+        else:
+            raise TypeError("Vec3.dot() requires a Vec3 instance.")
 
     def __repr__(self):
         return f"Vec3({self.x:.3f}, {self.y:.3f}, {self.z:.3f})"
@@ -105,11 +117,13 @@ class Vec3(Vec2):
         else: # scalar-Mat multiplication
             return self.ScalerMul(other)
 
-    def dot(self, other: Union[Vec2, "Vec3"]):
+    def __truediv__(self, other: Union["Vec2", "Vec3", int, float]):
         if isinstance(other, Vec3):
-            return (self.x * other.x) + (self.y * other.y) + (self.z * other.z)
+            return Vec3(self.x / other.x, self.y / other.y, self.z / other.z)
+        elif isinstance(other, Vec2):
+            raise TypeError("Vec3 division does not support Vec2 operands; use Vec3 instead.")
         else:
-            raise TypeError("Vec3.dot() requires a Vec3 instance.")
+            return Vec3(self.x / other, self.y / other, self.z / other)
 
 class Mat3:
     def __init__(self, mat: \
@@ -143,15 +157,6 @@ class Mat3:
 
         return new_mat
 
-    def VecMul(self, vec: Vec3):
-        new_vec = Vec3()
-            
-        new_vec.x = (self.mat[0][0] * vec.x) + (self.mat[0][1] * vec.y) + (self.mat[0][2] * vec.z)
-        new_vec.y = (self.mat[1][0] * vec.x) + (self.mat[1][1] * vec.y) + (self.mat[1][2] * vec.z)
-        new_vec.w = (self.mat[2][0] * vec.x) + (self.mat[2][1] * vec.y) + (self.mat[2][2] * vec.z)
-
-        return new_vec
-
     def MatMul(self, mat: "Mat3"):
         new_mat = Mat3()
 
@@ -175,7 +180,7 @@ class Mat3:
         if isinstance(other, Mat3): # Mat-Mat multiplication
             return self.MatMul(other)
         elif isinstance(other, Vec3): # Mat-vec multiplication
-            return self.VecMul(other)
+            raise TypeError("Mat3 * Vec3 is not supported; Direct3D uses row vectors, so use Vec3 * Mat3 instead.")
         else: # scalar-Mat multiplication
             return self.ScalerMul(other)
 
@@ -273,8 +278,9 @@ class PC3Transformer:
         self.y_factor: Final[float] = screen_height / 2
 
     def Transform(self, vec: Vec3):
-        vec.x = (vec.x + 1.0) * self.x_factor
-        vec.y = (-vec.y + 1.0) * self.y_factor
+        z_inv: Final[float] = 1.0 / vec.z
+        vec.x = ((vec.x * z_inv) + 1.0) * self.x_factor
+        vec.y = ((-vec.y * z_inv) + 1.0) * self.y_factor
         return vec
 
     def GetTransformed(self, vec: Vec3):
@@ -286,18 +292,18 @@ class IndexedLineList:
         self.indices: Final[list[tuple[int, int]]] = indices
 
 class Cube:
-    def __init__(self, size: float = 1.0) -> None:
+    def __init__(self, size: float) -> None:
         self.vertices: list[Vec3] = []
 
         side: Final[float] = size / 2.0
         self.vertices.append( Vec3(-side,-side,-side) )
-        self.vertices.append( Vec3(side,-side,-side) )
-        self.vertices.append( Vec3(-side,side,-side) )
-        self.vertices.append( Vec3(side,side,-side) )
-        self.vertices.append( Vec3(-side,-side,side) )
-        self.vertices.append( Vec3(side,-side,side) )
-        self.vertices.append( Vec3(-side,side,side) )
-        self.vertices.append( Vec3(side,side,side) )
+        self.vertices.append( Vec3( side,-side,-side) )
+        self.vertices.append( Vec3(-side, side,-side) )
+        self.vertices.append( Vec3( side, side,-side) )
+        self.vertices.append( Vec3(-side,-side, side) )
+        self.vertices.append( Vec3( side,-side, side) )
+        self.vertices.append( Vec3(-side, side, side) )
+        self.vertices.append( Vec3( side, side, side) )
 
     def GetLines(self) -> IndexedLineList:
         return IndexedLineList( 
