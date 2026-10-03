@@ -1,8 +1,21 @@
 from abc import ABC, abstractmethod
-from typing import Any, Union, Final
+from typing import Any, Union, Final, overload
 from copy import deepcopy
+from math import sin, cos, pi
 import cv2
 import numpy as np
+
+def WrapAngle(theta: float) -> float:
+    """
+    Wraps an angle in radians to the range [0, 2π).
+    
+    Parameters:
+        theta (float): Angle in radians.
+    
+    Returns:
+        float: Wrapped angle in radians.
+    """
+    return theta % (2 * pi)
 
 class Vec2:
     def __init__(self, x: float = 0, y: float = 0):
@@ -40,6 +53,33 @@ class Vec3(Vec2):
     def FromVec3(cls, vec: "Vec3"):
         return cls(vec.x, vec.y, vec.z)
 
+    def MatMul(self, mat: "Mat3"):
+        new_vec = Vec3()
+            
+        new_vec.x = (mat[0][0] * self.x) + (mat[0][1] * self.y) + (mat[0][2] * self.z)
+        new_vec.y = (mat[1][0] * self.x) + (mat[1][1] * self.y) + (mat[1][2] * self.z)
+        new_vec.w = (mat[2][0] * self.x) + (mat[2][1] * self.y) + (mat[2][2] * self.z)
+
+        return new_vec
+
+    def VecMul(self, vec: "Vec3"):
+        new_vec = Vec3()
+
+        new_vec.x = self.x * vec.x
+        new_vec.y = self.y * vec.y
+        new_vec.z = self.z * vec.z
+
+        return new_vec
+
+    def ScalerMul(self, scaler: Union[int, float]):
+        new_vec = Vec3()
+
+        new_vec.x = self.x * scaler
+        new_vec.y = self.y * scaler
+        new_vec.z = self.z * scaler
+
+        return new_vec
+
     def __repr__(self):
         return f"Vec3({self.x:.3f}, {self.y:.3f}, {self.z:.3f})"
 
@@ -57,11 +97,137 @@ class Vec3(Vec2):
         else:
             return Vec3(self.x + other, self.y + other, self.z + other)
 
+    def __mul__(self, other: Union["Mat3", "Vec3", int, float]) -> "Vec3":
+        if isinstance(other, Mat3): # Mat-Mat multiplication
+            return self.MatMul(other)
+        elif isinstance(other, Vec3): # Mat-vec multiplication
+            return self.VecMul(other)
+        else: # scalar-Mat multiplication
+            return self.ScalerMul(other)
+
     def dot(self, other: Union[Vec2, "Vec3"]):
         if isinstance(other, Vec3):
             return (self.x * other.x) + (self.y * other.y) + (self.z * other.z)
         else:
             raise TypeError("Vec3.dot() requires a Vec3 instance.")
+
+class Mat3:
+    def __init__(self, mat: \
+                 tuple[\
+                     tuple[Union[int, float], Union[int, float], Union[int, float]], \
+                     tuple[Union[int, float], Union[int, float], Union[int, float]], \
+                     tuple[Union[int, float], Union[int, float], Union[int, float]], \
+                    ] = \
+                    ((0, 0, 0), (0, 0, 0), (0, 0, 0))):
+        # [row][col]
+        self.mat: list[list[Union[int, float]]] = [list(row) for row in mat]
+
+    def __repr__(self) -> str:
+        return f"Mat3([\n  {self.mat[0]},\n  {self.mat[1]}\n  {self.mat[2]}\n])"
+
+    def __getitem__(self, idx: int) -> list[Union[int, float]]:
+        """Allow access like mat[row][col]."""
+        return self.mat[idx]
+
+    def __setitem__(self, idx: int, value: list[Union[int, float]]) -> None:
+        """Allow assignment like mat[row] = [..]."""
+        if len(value) != 3:
+            raise ValueError("Each row must have exactly 3 elements")
+        self.mat[idx] = value
+
+    def ScalerMul(self, scaler: Union[int, float]):
+        new_mat = Mat3()
+        for r, row in enumerate(self.mat):
+            for c, val in enumerate(row):
+                new_mat.mat[r][c] = scaler * val
+
+        return new_mat
+
+    def VecMul(self, vec: Vec3):
+        new_vec = Vec3()
+            
+        new_vec.x = (self.mat[0][0] * vec.x) + (self.mat[0][1] * vec.y) + (self.mat[0][2] * vec.z)
+        new_vec.y = (self.mat[1][0] * vec.x) + (self.mat[1][1] * vec.y) + (self.mat[1][2] * vec.z)
+        new_vec.w = (self.mat[2][0] * vec.x) + (self.mat[2][1] * vec.y) + (self.mat[2][2] * vec.z)
+
+        return new_vec
+
+    def MatMul(self, mat: "Mat3"):
+        new_mat = Mat3()
+
+        for row_left in range(3):
+            for col_rigth in range(3):
+                for i in range(3):
+                    new_mat.mat[row_left][col_rigth] += self.mat[row_left][i] * mat.mat[i][col_rigth]
+
+        return new_mat
+
+    @overload
+    def __mul__(self, other: "Mat3") -> "Mat3": ...
+
+    @overload
+    def __mul__(self, other: Vec3) -> Vec3: ...
+
+    @overload
+    def __mul__(self, other: Union[int, float]) -> Vec3: ...
+
+    def __mul__(self, other: Union["Mat3", Vec3, int, float]) -> Union[Vec3, "Mat3"]:
+        if isinstance(other, Mat3): # Mat-Mat multiplication
+            return self.MatMul(other)
+        elif isinstance(other, Vec3): # Mat-vec multiplication
+            return self.VecMul(other)
+        else: # scalar-Mat multiplication
+            return self.ScalerMul(other)
+
+    @staticmethod
+    def Scale(factor: Union[int, float]):
+        return Mat3(
+            (
+                (factor, 0, 0), 
+                (0, factor, 0), 
+                (0, 0, factor)
+            )
+        )
+
+    @staticmethod
+    def Identity():
+        return Mat3.Scale(1)
+
+    @staticmethod
+    def RotationZ(theta: float):
+        cos_theta: Final[float] = cos(theta)
+        sin_theta: Final[float] = sin(theta)
+        return Mat3(
+            (
+                (cos_theta, -sin_theta, 0.0), 
+                (sin_theta, cos_theta,  0.0), 
+                (0.0,       0.0,        1.0)
+            )
+        )
+
+    @staticmethod
+    def RotationY(theta: float):
+        cos_theta: Final[float] = cos(theta)
+        sin_theta: Final[float] = sin(theta)
+        return Mat3(
+            (
+                (cos_theta, 0.0, -sin_theta),
+                (0.0,       1.0, 0.0),
+                (sin_theta, 0.0, cos_theta)
+            )
+        )
+
+    @staticmethod
+    def RotationX(theta: float):
+        cos_theta: Final[float] = cos(theta)
+        sin_theta: Final[float] = sin(theta)
+        return Mat3(
+            (
+                (1.0, 0.0,       0.0),
+                (0.0, cos_theta, sin_theta),
+                (0.0, -sin_theta, cos_theta)
+            )
+        )
 
 class Color:
     White: "Color"

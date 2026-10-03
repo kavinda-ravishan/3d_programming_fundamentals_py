@@ -304,7 +304,7 @@ class Mat3:
             (
                 (cos_theta, -sin_theta, 0), 
                 (sin_theta, cos_theta, 0), 
-                (0, 0, 0)
+                (0, 0, 1)
             )
         )
 
