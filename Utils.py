@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any, Union, Final, overload
-from copy import deepcopy
-from math import sin, cos, pi
+from copy import copy, deepcopy
+from math import sin, cos, pi, ceil
 import cv2
 import numpy as np
 
@@ -40,6 +40,21 @@ class Vec2:
             return Vec2(self.x + other.x, self.y + other.y)
         else:
             return Vec2(self.x + other, self.y + other)
+
+    def __sub__(self, other: Union["Vec2", int, float]):
+        if isinstance(other, Vec2):
+            return Vec2(self.x - other.x, self.y - other.y)
+        else:
+            return Vec2(self.x - other, self.y - other)
+
+    def __neg__(self):
+        return Vec2(-self.x, -self.y)
+
+    def __mul__(self, other: Union["Vec2", int, float]) -> Union["Vec2", int, float]:
+        if isinstance(other, Vec2): # vec-vec dot product
+            return (self.x * other.x) + (self.y * other.y)
+        else: # scalar-vec multiplication
+            return Vec2(self.x * other, self.y * other)
 
     def __truediv__(self, other: Union["Vec2", int, float]):
         if isinstance(other, Vec2):
@@ -92,6 +107,9 @@ class Vec3(Vec2):
         else:
             raise TypeError("Vec3.dot() requires a Vec3 instance.")
 
+    def ToVec2(self):
+        return Vec2(self.x, self.y)
+
     def __repr__(self):
         return f"Vec3({self.x:.3f}, {self.y:.3f}, {self.z:.3f})"
 
@@ -109,11 +127,13 @@ class Vec3(Vec2):
         else:
             return Vec3(self.x + other, self.y + other, self.z + other)
 
-    def __mul__(self, other: Union["Mat3", "Vec3", int, float]) -> "Vec3":
+    def __mul__(self, other: Union["Mat3", "Vec2", "Vec3", int, float]) -> "Vec3":
         if isinstance(other, Mat3): # Mat-Mat multiplication
             return self.MatMul(other)
         elif isinstance(other, Vec3): # Mat-vec multiplication
             return self.VecMul(other)
+        elif isinstance(other, Vec2):
+            raise TypeError("Vec3 multiplication does not support Vec2 operands; use Vec3 instead.")
         else: # scalar-Mat multiplication
             return self.ScalerMul(other)
 
@@ -286,6 +306,11 @@ class PC3Transformer:
     def GetTransformed(self, vec: Vec3):
         return self.Transform(Vec3.FromVec3(vec))
 
+class IndexedTriangleList:
+    def __init__(self, vertices: list[Vec3], indices: list[tuple[int, int, int]]) -> None:
+        self.vertices: Final[list[Vec3]] = vertices
+        self.indices: Final[list[tuple[int, int, int]]] = indices
+
 class IndexedLineList:
     def __init__(self, vertices: list[Vec3], indices: list[tuple[int, int]]) -> None:
         self.vertices: Final[list[Vec3]] = vertices
@@ -311,8 +336,18 @@ class Cube:
                 (0,1), (1,3), (3,2), (2,0),
                 (0,4), (1,5), (3,7), (2,6),
                 (4,5), (5,7), (7,6), (6,4)
-            ]
-        )
+            ])
+
+    def GetTriangles(self) -> IndexedTriangleList:
+        return IndexedTriangleList(
+            deepcopy(self.vertices), [
+                (0,2,1), (2,3,1),
+                (1,3,5), (3,7,5),
+                (2,6,3), (3,6,7),
+                (4,5,7), (4,7,6),
+                (0,4,2), (2,4,6),
+                (0,1,4), (1,5,4) 
+            ])
 
 class Surface:
     def __init__(self, width: int, height: int):
@@ -466,6 +501,90 @@ class Graphics:
             
             if int(x2) > last_int_x:
                 self.PutPixel(int(x2), int(y2), color);
+
+    def DrawTriangle(self, v0: Union[Vec2, Vec3], v1: Union[Vec2, Vec3], v2: Union[Vec2, Vec3], color: Color ):
+        def _ToVec2(v: Union[Vec2, Vec3]) -> Vec2:
+            if isinstance(v, Vec3):
+                return Vec2(v.x, v.y)
+            return copy(v)  # already Vec2
+        
+        # using pointers so we can swap (for sorting purposes)
+        pv0: Vec2 = _ToVec2(v0)
+        pv1: Vec2 = _ToVec2(v1)
+        pv2: Vec2 = _ToVec2(v2)
+
+        # sorting vertices by y
+        if( pv1.y < pv0.y ): pv0, pv1 = pv1, pv0
+        if( pv2.y < pv1.y ): pv1, pv2 = pv2, pv1
+        if( pv1.y < pv0.y ): pv0, pv1 = pv1, pv0
+
+        if( pv0.y == pv1.y ): # natural flat top
+            # sorting top vertices by x
+            if( pv1.x < pv0.x ): pv0, pv1 = pv1, pv0
+            self._DrawFlatTopTriangle(pv0, pv1, pv2, color)
+        elif( pv1.y == pv2.y ): # natural flat bottom
+            # sorting bottom vertices by x
+            if( pv2.x < pv1.x ): pv1, pv2 = pv2, pv1
+            self._DrawFlatBottomTriangle(pv0, pv1, pv2, color)
+        else: # general triangle
+            # find splitting vertex
+            alpha_split: float = (pv1.y - pv0.y) / (pv2.y - pv0.y)
+            # alpha_split also,
+            # alpha_split = (vi - pv0) / (pv2 - pv0)
+            # vi = (alpha_split * pv2) + (pv0 * (1 - alpha_split))
+            # vi = pv0 + (alpha_split * (pv2 - pv0))
+            vi: Vec2  = pv0 + ((pv2 - pv0) * alpha_split)
+
+            if( pv1.x < vi.x ): # major right
+                self._DrawFlatBottomTriangle(pv0, pv1, vi, color)
+                self._DrawFlatTopTriangle(pv1,vi, pv2, color)
+            else: # major left
+                self._DrawFlatBottomTriangle(pv0, vi, pv1, color)
+                self._DrawFlatTopTriangle(vi, pv1, pv2, color)
+
+    def _DrawFlatTopTriangle(self, v0: Vec2, v1: Vec2, v2: Vec2, color: Color):
+        # calulcate slopes in screen space
+        m0: float = (v2.x - v0.x) / (v2.y - v0.y)
+        m1: float = (v2.x - v1.x) / (v2.y - v1.y)
+
+        # calculate start and end scanlines
+        y_start: int = int(ceil( v0.y - 0.5 ))
+        y_end: int = int(ceil( v2.y - 0.5 )) # the scanline AFTER the last line drawn
+
+        for y in range(y_start, y_end):
+            # caluclate start and end points (x-coords)
+            # add 0.5 to y value because we're calculating based on pixel CENTERS
+            px0: float = m0 * (float( y ) + 0.5 - v0.y) + v0.x
+            px1: float = m1 * (float( y ) + 0.5 - v1.y) + v1.x
+
+            # calculate start and end pixels
+            x_start: int = int(ceil( px0 - 0.5 ))
+            x_end: int = int(ceil( px1 - 0.5 )) # the pixel AFTER the last pixel drawn
+
+            for x in range(x_start, x_end):
+                self.PutPixel( x,y,color )
+
+    def _DrawFlatBottomTriangle(self, v0: Vec2, v1: Vec2, v2: Vec2, color: Color ):
+        # calulcate slopes in screen space
+        m0: float = (v1.x - v0.x) / (v1.y - v0.y)
+        m1: float = (v2.x - v0.x) / (v2.y - v0.y)
+
+        # calculate start and end scanlines
+        y_start: int = int(ceil( v0.y - 0.5 ))
+        y_end: int = int(ceil( v2.y - 0.5 )) # the scanline AFTER the last line drawn
+
+        for y in range(y_start, y_end):
+            # caluclate start and end points
+            # add 0.5 to y value because we're calculating based on pixel CENTERS
+            px0: float = m0 * (float( y ) + 0.5 - v0.y) + v0.x
+            px1: float = m1 * (float( y ) + 0.5 - v0.y) + v0.x
+
+            # calculate start and end pixels
+            x_start: int = int(ceil( px0 - 0.5 ))
+            x_end: int = int(ceil( px1 - 0.5 )) # the pixel AFTER the last pixel drawn
+
+            for x in range(x_start, x_end):
+                self.PutPixel( x,y,color )
 
 class Scene(ABC):
     def __init__(self): ...
