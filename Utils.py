@@ -62,7 +62,7 @@ class Vec2:
         else:
             return Vec2(self.x / other, self.y / other)
 
-    def dot(self, other: "Vec2"):
+    def Dot(self, other: "Vec2"):
         return (self.x * other.x) + (self.y * other.y)
 
 class Vec3:
@@ -102,8 +102,15 @@ class Vec3:
 
         return new_vec
 
-    def dot(self, other: "Vec3"):
+    def Dot(self, other: "Vec3"):
         return (self.x * other.x) + (self.y * other.y) + (self.z * other.z)
+
+    def Cross(self, other: "Vec3"):
+        return Vec3(
+			(self.y * other.z) - (self.z * other.y),
+			(self.z * other.x) - (self.x * other.z),
+			(self.x * other.y) - (self.y * other.x) 
+        )
 
     def ToVec2(self):
         return Vec2(self.x, self.y)
@@ -122,6 +129,15 @@ class Vec3:
             return Vec3(self.x + other.x, self.y + other.y, self.z + other.z)
         else:
             return Vec3(self.x + other, self.y + other, self.z + other)
+
+    def __sub__(self, other: Union["Vec3", int, float]):
+        if isinstance(other, Vec3):
+            return Vec3(self.x - other.x, self.y - other.y, self.z - other.z)
+        else:
+            return Vec3(self.x - other, self.y - other, self.z - other)
+
+    def __neg__(self):
+        return Vec3(-self.x, -self.y, -self.z)
 
     def __mul__(self, other: Union["Mat3", "Vec3", int, float]) -> "Vec3":
         if isinstance(other, Mat3): # Mat-Mat multiplication
@@ -302,6 +318,7 @@ class IndexedTriangleList:
     def __init__(self, vertices: list[Vec3], indices: list[tuple[int, int, int]]) -> None:
         self.vertices: Final[list[Vec3]] = vertices
         self.indices: Final[list[tuple[int, int, int]]] = indices
+        self.cull_flag: list[bool] = [False for _ in range(len(self.indices))]
 
 class IndexedLineList:
     def __init__(self, vertices: list[Vec3], indices: list[tuple[int, int]]) -> None:

@@ -7,6 +7,7 @@ class SimpleSence(Scene):
     def __init__(self):
         super().__init__()
         self.cube: Final[Cube] = Cube(1.0)
+        self.cube_fix: Final[Cube] = Cube(1.0)
         self.d_thete: Final[float] = pi
         self.offset_z: float = 2.0
         self.theta_x: float = 0.0
@@ -59,16 +60,58 @@ class SimpleSence(Scene):
         if not hasattr(self, 'pc3'): return
 
         triangles = deepcopy(self.cube.GetTriangles())
+        triangles_fix = deepcopy(self.cube_fix.GetTriangles())
 
         rotation_matrix: Final[Mat3] = Mat3.RotationX(self.theta_x) * Mat3.RotationY(self.theta_y) * Mat3.RotationZ(self.theta_z)
+        rotation_matrix__fix: Final[Mat3] = Mat3.RotationX(-self.theta_x) * Mat3.RotationY(-self.theta_y) * Mat3.RotationZ(-self.theta_z)
 
+        # =============================== Fix CUBE ===============================
+        # transform from model space -> world (/view) space
+        for i, _ in enumerate(triangles_fix.vertices):
+            triangles_fix.vertices[i] = triangles_fix.vertices[i] * rotation_matrix__fix
+            triangles_fix.vertices[i] = triangles_fix.vertices[i] + Vec3(0.0, 0.0, 2.0)
+
+        # backface culling test
+        for i, triangle in enumerate(triangles_fix.indices):
+            v0 = triangles_fix.vertices[triangle[0]]
+            v1 = triangles_fix.vertices[triangle[1]]
+            v2 = triangles_fix.vertices[triangle[2]]
+            triangles_fix.cull_flag[i] = (v1 - v0).Cross(v2 - v0).Dot(v0) >= 0.0
+        
+        # transform from world (/view) space -> screen space
+        for i, _ in enumerate(triangles_fix.vertices):
+            self.pc3.Transform(triangles_fix.vertices[i])
+
+        for i, triangle in enumerate(triangles_fix.indices):
+
+            if not triangles_fix.cull_flag[i]:
+                v0 = triangles_fix.vertices[triangle[0]]
+                v1 = triangles_fix.vertices[triangle[1]]
+                v2 = triangles_fix.vertices[triangle[2]]
+                self.gfx.DrawTriangle(v0, v1, v2, self.colors[i%len(self.colors)])
+
+
+        # =============================== CUBE ===============================
+        # transform from model space -> world (/view) space
         for i, _ in enumerate(triangles.vertices):
             triangles.vertices[i] = triangles.vertices[i] * rotation_matrix
             triangles.vertices[i] = triangles.vertices[i] + Vec3(0.0, 0.0, self.offset_z)
+
+        # backface culling test
+        for i, triangle in enumerate(triangles.indices):
+            v0 = triangles.vertices[triangle[0]]
+            v1 = triangles.vertices[triangle[1]]
+            v2 = triangles.vertices[triangle[2]]
+            triangles.cull_flag[i] = (v1 - v0).Cross(v2 - v0).Dot(v0) >= 0.0
+        
+        # transform from world (/view) space -> screen space
+        for i, _ in enumerate(triangles.vertices):
             self.pc3.Transform(triangles.vertices[i])
 
-        for i, line in enumerate(triangles.indices):
-            v0 = triangles.vertices[line[0]]
-            v1 = triangles.vertices[line[1]]
-            v2 = triangles.vertices[line[2]]
-            self.gfx.DrawTriangle(v0, v1, v2, self.colors[i%len(self.colors)])
+        for i, triangle in enumerate(triangles.indices):
+
+            if not triangles.cull_flag[i]:
+                v0 = triangles.vertices[triangle[0]]
+                v1 = triangles.vertices[triangle[1]]
+                v2 = triangles.vertices[triangle[2]]
+                self.gfx.DrawTriangle(v0, v1, v2, self.colors[i%len(self.colors)])
