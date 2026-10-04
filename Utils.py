@@ -65,9 +65,10 @@ class Vec2:
     def dot(self, other: "Vec2"):
         return (self.x * other.x) + (self.y * other.y)
 
-class Vec3(Vec2):
+class Vec3:
     def __init__(self, x: float = 0, y: float = 0, z: float = 0):
-        super().__init__(x, y)
+        self.x = float(x)
+        self.y = float(y)
         self.z = float(z)
 
     @classmethod
@@ -101,11 +102,8 @@ class Vec3(Vec2):
 
         return new_vec
 
-    def dot(self, other: Union[Vec2, "Vec3"]):
-        if isinstance(other, Vec3):
-            return (self.x * other.x) + (self.y * other.y) + (self.z * other.z)
-        else:
-            raise TypeError("Vec3.dot() requires a Vec3 instance.")
+    def dot(self, other: "Vec3"):
+        return (self.x * other.x) + (self.y * other.y) + (self.z * other.z)
 
     def ToVec2(self):
         return Vec2(self.x, self.y)
@@ -119,29 +117,23 @@ class Vec3(Vec2):
         else:
             super().__setattr__(name, value)
 
-    def __add__(self, other: Union["Vec2", "Vec3", int, float]):
+    def __add__(self, other: Union["Vec3", int, float]):
         if isinstance(other, Vec3):
             return Vec3(self.x + other.x, self.y + other.y, self.z + other.z)
-        elif isinstance(other, Vec2):
-            raise TypeError("Vec3 addition does not support Vec2 operands; use Vec3 instead.")
         else:
             return Vec3(self.x + other, self.y + other, self.z + other)
 
-    def __mul__(self, other: Union["Mat3", "Vec2", "Vec3", int, float]) -> "Vec3":
+    def __mul__(self, other: Union["Mat3", "Vec3", int, float]) -> "Vec3":
         if isinstance(other, Mat3): # Mat-Mat multiplication
             return self.MatMul(other)
         elif isinstance(other, Vec3): # Mat-vec multiplication
             return self.VecMul(other)
-        elif isinstance(other, Vec2):
-            raise TypeError("Vec3 multiplication does not support Vec2 operands; use Vec3 instead.")
         else: # scalar-Mat multiplication
             return self.ScalerMul(other)
 
-    def __truediv__(self, other: Union["Vec2", "Vec3", int, float]):
+    def __truediv__(self, other: Union["Vec3", int, float]):
         if isinstance(other, Vec3):
             return Vec3(self.x / other.x, self.y / other.y, self.z / other.z)
-        elif isinstance(other, Vec2):
-            raise TypeError("Vec3 division does not support Vec2 operands; use Vec3 instead.")
         else:
             return Vec3(self.x / other, self.y / other, self.z / other)
 
