@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Union, Final, overload
+from typing import Any, Union, Optional, Final, Sequence, overload
 from copy import copy, deepcopy
 from math import sin, cos, pi, ceil
 import cv2
@@ -26,6 +26,12 @@ class Vec2:
     def FromVec2(cls, vec: "Vec2"):
         cls(vec.x, vec.y)
 
+    def Dot(self, other: "Vec2"):
+        return (self.x * other.x) + (self.y * other.y)
+
+    def InterpolateTo(self, dest: "Vec2", alpha: Union[int, float]):
+        return self + (dest - self) * alpha
+
     def __repr__(self):
         return f"Vec2({self.x:.3f}, {self.y:.3f})"
 
@@ -50,9 +56,9 @@ class Vec2:
     def __neg__(self):
         return Vec2(-self.x, -self.y)
 
-    def __mul__(self, other: Union["Vec2", int, float]) -> Union["Vec2", int, float]:
+    def __mul__(self, other: Union["Vec2", int, float]):
         if isinstance(other, Vec2): # vec-vec dot product
-            return (self.x * other.x) + (self.y * other.y)
+            return Vec2(self.x * other.x, self.y * other.y)
         else: # scalar-vec multiplication
             return Vec2(self.x * other, self.y * other)
 
@@ -61,9 +67,6 @@ class Vec2:
             return Vec2(self.x / other.x, self.y / other.y)
         else:
             return Vec2(self.x / other, self.y / other)
-
-    def Dot(self, other: "Vec2"):
-        return (self.x * other.x) + (self.y * other.y)
 
 class Vec3:
     def __init__(self, x: float = 0, y: float = 0, z: float = 0):
@@ -114,6 +117,9 @@ class Vec3:
 
     def ToVec2(self):
         return Vec2(self.x, self.y)
+
+    def InterpolateTo(self, dest: "Vec3", alpha: Union[int, float]):
+        return self + ((dest - self) * alpha)
 
     def __repr__(self):
         return f"Vec3({self.x:.3f}, {self.y:.3f}, {self.z:.3f})"
@@ -299,6 +305,38 @@ Color.Yellow = Color(255, 255, 0)
 Color.Cyan = Color(0, 255, 255)
 Color.Magenta = Color(255, 0, 255)
 
+class TextureVertex:
+    def __init__(self, pos: Vec3, tc: Vec2):
+        self.pos: Vec3 = pos
+        self.tc: Vec2 = tc
+
+    def InterpolateTo(self, dest: "TextureVertex", alpha: float):
+        return TextureVertex(
+            self.pos.InterpolateTo(dest.pos, alpha), 
+            self.tc.InterpolateTo(dest.tc, alpha)
+        )
+
+    def __add__(self, other: "TextureVertex"):
+        return TextureVertex(self.pos + other.pos, self.tc + other.tc)
+
+    def __sub__(self, other: "TextureVertex"):
+        return TextureVertex(self.pos - other.pos, self.tc - other.tc)
+
+    def __neg__(self):
+        return TextureVertex(-self.pos, -self.tc)
+
+    def __mul__(self, other: Union["TextureVertex", float, int]):
+        if isinstance(other, TextureVertex):
+            return TextureVertex(self.pos * other.pos, self.tc * other.tc)
+        else:
+            return TextureVertex(self.pos * other, self.tc * other)
+
+    def __truediv__(self, other:Union["TextureVertex", float, int]):
+        if isinstance(other, TextureVertex):
+            return TextureVertex(self.pos / other.pos, self.tc / other.tc)
+        else:
+            return TextureVertex(self.pos / other, self.tc / other)
+
 # PC3 : Pre-cliped 3D space
 class PC3Transformer:
     def __init__(self, screen_width: int, screen_height: int) -> None:
@@ -315,8 +353,8 @@ class PC3Transformer:
         return self.Transform(Vec3.FromVec3(vec))
 
 class IndexedTriangleList:
-    def __init__(self, vertices: list[Vec3], indices: list[tuple[int, int, int]]) -> None:
-        self.vertices: Final[list[Vec3]] = vertices
+    def __init__(self, vertices: Sequence[Union[Vec3, TextureVertex]], indices: list[tuple[int, int, int]]) -> None:
+        self.vertices: Final[list[Union[Vec3, TextureVertex]]] = list(vertices)
         self.indices: Final[list[tuple[int, int, int]]] = indices
         self.cull_flag: list[bool] = [False for _ in range(len(self.indices))]
 
@@ -326,8 +364,9 @@ class IndexedLineList:
         self.indices: Final[list[tuple[int, int]]] = indices
 
 class Cube:
-    def __init__(self, size: float) -> None:
+    def __init__(self, size: float, texdim: float = 1.0) -> None:
         self.vertices: list[Vec3] = []
+        self.texture_coordinate: list[Vec2] = []
 
         side: Final[float] = size / 2.0
         self.vertices.append( Vec3(-side,-side,-side) )
@@ -339,6 +378,16 @@ class Cube:
         self.vertices.append( Vec3(-side, side, side) )
         self.vertices.append( Vec3( side, side, side) )
 
+        self.texture_coordinate.append( Vec2(0.0, texdim))
+        self.texture_coordinate.append( Vec2(texdim, texdim))
+        self.texture_coordinate.append( Vec2(0.0, 0.0))
+        self.texture_coordinate.append( Vec2(texdim, 0.0))
+        self.texture_coordinate.append( Vec2(texdim, texdim))
+        self.texture_coordinate.append( Vec2(0.0, texdim))
+        self.texture_coordinate.append( Vec2(texdim, 0.0))
+        self.texture_coordinate.append( Vec2(0.0, 0.0))
+
+
     def GetLines(self) -> IndexedLineList:
         return IndexedLineList( 
             deepcopy(self.vertices), [
@@ -346,6 +395,7 @@ class Cube:
                 (0,4), (1,5), (3,7), (2,6),
                 (4,5), (5,7), (7,6), (6,4)
             ])
+
 
     def GetTriangles(self) -> IndexedTriangleList:
         return IndexedTriangleList(
@@ -358,12 +408,38 @@ class Cube:
                 (0,1,4), (1,5,4) 
             ])
 
+    def GetTrianglesTex(self) -> IndexedTriangleList:
+        tverts: list[Union[Vec3, TextureVertex]] = []
+        for i, v in enumerate(self.vertices):
+            tverts.append(TextureVertex(v, self.texture_coordinate[i]))
+
+        return IndexedTriangleList(
+            deepcopy(tverts), [
+                (0,2,1), (2,3,1),
+                (1,3,5), (3,7,5),
+                (2,6,3), (3,6,7),
+                (4,5,7), (4,7,6),
+                (0,4,2), (2,4,6),
+                (0,1,4), (1,5,4) 
+            ])
+
 class Surface:
-    def __init__(self, width: int, height: int):
+    def __init__(self, width: int, height: int, canvas: Optional[np.ndarray[Any, Any]] = None):
         self.width: Final[int] = width
         self.height: Final[int] = height
-        self.canvas = np.zeros((self.height, self.width, 3), dtype="uint8")
+        if canvas is None:
+            self.canvas = np.zeros((self.height, self.width, 3), dtype="uint8")
+        else:
+            self.canvas = canvas
 
+    @classmethod
+    def FromFile(cls, path: str):
+        image = cv2.imread(path)
+        if image is None:
+            raise ValueError(f"Could not load image from path: {path}")
+        height, width = image.shape[:2]
+        return cls(width, height, image)
+        
     def GetCanvas(self):
         return self.canvas
 
@@ -373,9 +449,18 @@ class Surface:
     def PutPixel(self, x: int, y: int, color: Color):
         if(x >=0 and y >= 0 and x < self.width and y < self.height):
             self.canvas[int(y),int(x)] = (color.b, color.g, color.r)
+        else:
+            raise IndexError("Pixel coordinates are out of bounds")
 
-    def GetFrameWidth(self): return self.width
-    def GetFrameHeight(self): return self.height
+    def GetPixel(self, x: int, y: int):
+        if(x >=0 and y >= 0 and x < self.width and y < self.height):
+            pixel = self.canvas[int(y),int(x)]
+            return Color(pixel[2], pixel[1], pixel[0])
+        else:
+            raise IndexError("Pixel coordinates are out of bounds")
+
+    def GetWidth(self): return self.width
+    def GetHeight(self): return self.height
 
 class Mouse:
     def __init__(self):
@@ -594,6 +679,104 @@ class Graphics:
 
             for x in range(x_start, x_end):
                 self.PutPixel( x,y,color )
+
+    def DrawTriangleTex(self, v0: TextureVertex, v1: TextureVertex, v2: TextureVertex, tex: Surface):
+        # using pointers so we can swap (for sorting purposes)
+        pv0: TextureVertex = copy(v0)
+        pv1: TextureVertex = copy(v1)
+        pv2: TextureVertex = copy(v2)
+
+        # sorting vertices by y
+        if( pv1.pos.y < pv0.pos.y ): pv0, pv1 = pv1, pv0
+        if( pv2.pos.y < pv1.pos.y ): pv1, pv2 = pv2, pv1
+        if( pv1.pos.y < pv0.pos.y ): pv0, pv1 = pv1, pv0
+
+        if( pv0.pos.y == pv1.pos.y ): # natural flat top
+            # sorting top vertices by x
+            if( pv1.pos.x < pv0.pos.x ): pv0,pv1=pv1,pv0
+            self._DrawFlatTopTriangleTex(pv0, pv1, pv2, tex)
+        elif( pv1.pos.y == pv2.pos.y ): # natural flat bottom
+            # sorting bottom vertices by x
+            if( pv2.pos.x < pv1.pos.x ): pv1,pv2=pv2,pv1
+            self._DrawFlatBottomTriangleTex(pv0, pv1, pv2, tex)
+        else: # general triangle
+            # find splitting vertex
+            alpha_split: Final[float] = (pv1.pos.y - pv0.pos.y) / (pv2.pos.y - pv0.pos.y)
+            vi: Final[TextureVertex] = pv0.InterpolateTo(pv2, alpha_split)
+
+            if( pv1.pos.x < vi.pos.x ): # major right
+                self._DrawFlatBottomTriangleTex(pv0, pv1, vi, tex)
+                self._DrawFlatTopTriangleTex(pv1, vi, pv2, tex)
+            else: # major left
+                self._DrawFlatBottomTriangleTex(pv0, vi, pv1 ,tex)
+                self._DrawFlatTopTriangleTex(vi, pv1, pv2, tex)
+
+    def _DrawFlatTopTriangleTex(self, v0: TextureVertex, v1: TextureVertex, v2: TextureVertex, tex:Surface):
+        # calulcate dVertex / dy
+        delta_y: Final[float] = v2.pos.y - v0.pos.y
+        dv0: Final[TextureVertex] = (v2 - v0) / delta_y
+        dv1: Final[TextureVertex] = (v2 - v1) / delta_y
+
+        # create right edge interpolant
+        it_edge1: TextureVertex = v1
+
+        # call the flat triangle render routine
+        self._DrawFlatTriangleTex( v0,v1,v2,tex,dv0,dv1,it_edge1 )
+
+    def _DrawFlatBottomTriangleTex(self, v0: TextureVertex, v1: TextureVertex, v2: TextureVertex, tex:Surface):
+        # calulcate dVertex / dy
+        delta_y: Final[float] = v2.pos.y - v0.pos.y
+        dv0: Final[TextureVertex] = (v1 - v0) / delta_y
+        dv1: Final[TextureVertex] = (v2 - v0) / delta_y
+
+        # create right edge interpolant
+        it_edge1: TextureVertex = v0;
+
+        # call the flat triangle render routine
+        self._DrawFlatTriangleTex( v0,v1,v2,tex,dv0,dv1,it_edge1 )
+
+    def _DrawFlatTriangleTex(self, v0: TextureVertex, v1: TextureVertex, v2: TextureVertex, tex: Surface, dv0: TextureVertex, dv1: TextureVertex, it_edge_1: TextureVertex):
+        # create edge interpolant for left edge (always v0)
+        it_edge0: TextureVertex = v0
+        it_edge1: TextureVertex = it_edge_1
+
+        # calculate start and end scanlines
+        y_start: Final[int] = int(ceil( v0.pos.y - 0.5 ))
+        y_end: Final[int] = int(ceil( v2.pos.y - 0.5 )) # the scanline AFTER the last line drawn
+        
+        # do interpolant prestep
+        it_edge0: TextureVertex = it_edge0 + (dv0 * (float( y_start ) + 0.5 - v0.pos.y))
+        it_edge1: TextureVertex = it_edge1 + (dv1 * (float( y_start ) + 0.5 - v0.pos.y))
+
+        # init tex width/height and clamp values
+        tex_width: Final[float] = float( tex.GetWidth() )
+        tex_height: Final[float] = float( tex.GetHeight() )
+        tex_clamp_x: Final[float] = tex_width - 1.0
+        tex_clamp_y: Final[float] = tex_height - 1.0
+
+        for y in range(y_start, y_end):
+            # calculate start and end pixels
+            x_start: int = int(ceil( it_edge0.pos.x - 0.5 ))
+            x_end: int = int(ceil( it_edge1.pos.x - 0.5 )) # the pixel AFTER the last pixel drawn
+            
+            # calculate scanline dTexCoord / dx
+            dtc_line: Vec2 = (it_edge1.tc - it_edge0.tc) / (it_edge1.pos.x - it_edge0.pos.x)
+
+            # create scanline tex coord interpolant and prestep
+            itc_line: Vec2 = it_edge0.tc + (dtc_line * (float( x_start ) + 0.5 - it_edge0.pos.x))
+
+            for x in range(x_start, x_end):
+                self.PutPixel( x,y,tex.GetPixel( 
+                        int( max(0, min( itc_line.x * tex_width,tex_clamp_x ))),
+                        int( max(0, min( itc_line.y * tex_height,tex_clamp_y )))
+                    ) 
+                )
+                itc_line: Vec2 = itc_line + dtc_line
+                # need std::min b/c tc.x/y == 1.0, we'll read off edge of tex
+                # and with fp err, tc.x/y can be > 1.0 (by a tiny amount)
+
+            it_edge0: TextureVertex = it_edge0 + dv0
+            it_edge1: TextureVertex = it_edge1 + dv1
 
 class Scene(ABC):
     def __init__(self): ...

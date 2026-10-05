@@ -1,9 +1,9 @@
-from typing import Union, Final
+from typing import Union, Final, cast
 from copy import deepcopy
 from math import pi
 from Utils import Vec2, Vec3, Mat3, Scene, PC3Transformer, Cube, Color, WrapAngle
 
-class SimpleSence(Scene):
+class CubeOrderScene(Scene):
     def __init__(self):
         super().__init__()
         self.cube: Final[Cube] = Cube(1.0)
@@ -31,7 +31,7 @@ class SimpleSence(Scene):
 
     def SetupComplete(self):
         if not hasattr(self, 'gfx'): raise Exception("Graphics not found")
-        self.pc3: PC3Transformer = PC3Transformer(self.gfx.surface.GetFrameWidth(), self.gfx.surface.GetFrameHeight())
+        self.pc3: PC3Transformer = PC3Transformer(self.gfx.surface.GetWidth(), self.gfx.surface.GetHeight())
 
     def Update(self, key: Union[str, None], mouse_stat: tuple[Vec2, bool, bool], dt: float):
         # m_c = mouse_stat[0]
@@ -67,51 +67,55 @@ class SimpleSence(Scene):
 
         # =============================== Fix CUBE ===============================
         # transform from model space -> world (/view) space
+        vertices_fix: list[Vec3] = cast(list[Vec3], triangles_fix.vertices)
+
         for i, _ in enumerate(triangles_fix.vertices):
-            triangles_fix.vertices[i] = triangles_fix.vertices[i] * rotation_matrix__fix
-            triangles_fix.vertices[i] = triangles_fix.vertices[i] + Vec3(0.0, 0.0, 2.0)
+            vertices_fix[i] = vertices_fix[i] * rotation_matrix__fix
+            vertices_fix[i] = vertices_fix[i] + Vec3(0.0, 0.0, 2.0)
 
         # backface culling test
         for i, triangle in enumerate(triangles_fix.indices):
-            v0 = triangles_fix.vertices[triangle[0]]
-            v1 = triangles_fix.vertices[triangle[1]]
-            v2 = triangles_fix.vertices[triangle[2]]
+            v0 = vertices_fix[triangle[0]]
+            v1 = vertices_fix[triangle[1]]
+            v2 = vertices_fix[triangle[2]]
             triangles_fix.cull_flag[i] = (v1 - v0).Cross(v2 - v0).Dot(v0) >= 0.0
         
         # transform from world (/view) space -> screen space
-        for i, _ in enumerate(triangles_fix.vertices):
-            self.pc3.Transform(triangles_fix.vertices[i])
+        for i, _ in enumerate(vertices_fix):
+            self.pc3.Transform(vertices_fix[i])
 
         for i, triangle in enumerate(triangles_fix.indices):
 
             if not triangles_fix.cull_flag[i]:
-                v0 = triangles_fix.vertices[triangle[0]]
-                v1 = triangles_fix.vertices[triangle[1]]
-                v2 = triangles_fix.vertices[triangle[2]]
+                v0 = vertices_fix[triangle[0]]
+                v1 = vertices_fix[triangle[1]]
+                v2 = vertices_fix[triangle[2]]
                 self.gfx.DrawTriangle(v0, v1, v2, self.colors[i%len(self.colors)])
 
 
         # =============================== CUBE ===============================
         # transform from model space -> world (/view) space
-        for i, _ in enumerate(triangles.vertices):
-            triangles.vertices[i] = triangles.vertices[i] * rotation_matrix
-            triangles.vertices[i] = triangles.vertices[i] + Vec3(0.0, 0.0, self.offset_z)
+        vertices: list[Vec3] = cast(list[Vec3], triangles.vertices)
+
+        for i, _ in enumerate(vertices):
+            vertices[i] = vertices[i] * rotation_matrix
+            vertices[i] = vertices[i] + Vec3(0.0, 0.0, self.offset_z)
 
         # backface culling test
         for i, triangle in enumerate(triangles.indices):
-            v0 = triangles.vertices[triangle[0]]
-            v1 = triangles.vertices[triangle[1]]
-            v2 = triangles.vertices[triangle[2]]
+            v0 = vertices[triangle[0]]
+            v1 = vertices[triangle[1]]
+            v2 = vertices[triangle[2]]
             triangles.cull_flag[i] = (v1 - v0).Cross(v2 - v0).Dot(v0) >= 0.0
         
         # transform from world (/view) space -> screen space
-        for i, _ in enumerate(triangles.vertices):
-            self.pc3.Transform(triangles.vertices[i])
+        for i, _ in enumerate(vertices):
+            self.pc3.Transform(vertices[i])
 
         for i, triangle in enumerate(triangles.indices):
 
             if not triangles.cull_flag[i]:
-                v0 = triangles.vertices[triangle[0]]
-                v1 = triangles.vertices[triangle[1]]
-                v2 = triangles.vertices[triangle[2]]
+                v0 = vertices[triangle[0]]
+                v1 = vertices[triangle[1]]
+                v2 = vertices[triangle[2]]
                 self.gfx.DrawTriangle(v0, v1, v2, self.colors[i%len(self.colors)])
