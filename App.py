@@ -1,5 +1,5 @@
 from Utils import Game
-# from CubeOrderScene import CubeOrderScene
+from SolidCubeScene import SolidCubeScene
 from TextureCubeScene import TextureCubeScene
 
 if '__main__' == __name__:
@@ -7,6 +7,5 @@ if '__main__' == __name__:
     frame_height = 640
     fps = 24.0
 
-    # game = Game(frame_width, frame_height, fps, [TextureCubeScene(), CubeOrderScene()])
-    game = Game(frame_width, frame_height, fps, [TextureCubeScene()])
+    game = Game(frame_width, frame_height, fps, [TextureCubeScene(), SolidCubeScene()])
     game.Go()

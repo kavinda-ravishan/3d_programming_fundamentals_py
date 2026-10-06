@@ -1,11 +1,22 @@
 from abc import ABC, abstractmethod
-from typing import Any, Union, Optional, Final, Generic, TypeVar, overload
+from typing import Any, Union, Optional, Final, Generic, TypeVar, overload, Protocol
 from math import sin, cos, pi, ceil
 from copy import deepcopy
 import cv2
 import numpy as np
 
-T = TypeVar("T")
+VertexT = TypeVar("VertexT", bound="VertexArithmetic")
+
+class VertexArithmetic(Protocol):
+    pos: "Vec3"
+
+    def __add__(self: VertexT, other: VertexT) -> VertexT: ...
+    def __sub__(self: VertexT, other: VertexT) -> VertexT: ...
+    def __mul__(self: VertexT, other: Union[VertexT, int, float]) -> VertexT: ...
+    def __truediv__(self: VertexT, other: Union[VertexT, int, float]) -> VertexT: ...
+
+def Interpolate(src: Any, dst: Any, alpha: float) -> Any:
+    return src + (dst - src) * alpha
 
 def WrapAngle(theta: float) -> float:
     """
@@ -301,8 +312,8 @@ Color.Yellow = Color(255, 255, 0)
 Color.Cyan = Color(0, 255, 255)
 Color.Magenta = Color(255, 0, 255)
 
-class Triangle(Generic[T]):
-    def __init__(self, v0: T, v1: T, v2: T):
+class Triangle(Generic[VertexT]):
+    def __init__(self, v0: VertexT, v1: VertexT, v2: VertexT):
         self.v0 = deepcopy(v0)
         self.v1 = deepcopy(v1)
         self.v2 = deepcopy(v2)
@@ -322,18 +333,67 @@ class PC3Transformer:
     def GetTransformed(self, vec: Vec3):
         return self.Transform(Vec3.FromVec3(vec))
 
-class VertexBase:
-    def __init__(self, pos: Vec3, t: Vec2):
-        self.pos: Vec3 = pos
-        self.t: Vec2 = t
-
 class IndexedTriangleList:
-    def __init__(self, vertices: list[VertexBase], indices: list[tuple[int, int, int]]) -> None:
-        self.vertices: Final[list[VertexBase]] = list(vertices)
+    def __init__(self, vertices: list[Any], indices: list[tuple[int, int, int]]) -> None:
+        self.vertices: Final[list[Any]] = list(vertices)
         self.indices: Final[list[tuple[int, int, int]]] = indices
 
 class Cube:
     def __init__(self, ) -> None: ...
+
+    @staticmethod
+    def GetPlainIndependentFaces(size: float = 1.0) -> IndexedTriangleList:
+        side: Final[float] = size / 2.0
+        vertices: list[Vec3] = [
+            Vec3( -side,-side,-side ), # 0 near side
+            Vec3( side,-side,-side ), # 1
+            Vec3( -side,side,-side ), # 2
+            Vec3( side,side,-side ), # 3
+            Vec3( -side,-side,side ), # 4 far side
+            Vec3( side,-side,side ), # 5
+            Vec3( -side,side,side ), # 6
+            Vec3( side,side,side ), # 7
+            Vec3( -side,-side,-side ), # 8 left side
+            Vec3( -side,side,-side ), # 9
+            Vec3( -side,-side,side ), # 10
+            Vec3( -side,side,side ), # 11
+            Vec3( side,-side,-side ), # 12 right side
+            Vec3( side,side,-side ), # 13
+            Vec3( side,-side,side ), # 14
+            Vec3( side,side,side ), # 15
+            Vec3( -side,-side,-side ), # 16 bottom side
+            Vec3( side,-side,-side ), # 17
+            Vec3( -side,-side,side ), # 18
+            Vec3( side,-side,side ), # 19
+            Vec3( -side,side,-side ), # 20 top side
+            Vec3( side,side,-side ), # 21
+            Vec3( -side,side,side ), # 22
+            Vec3( side,side,side ) # 23
+        ]
+
+        colors: list[Color] = [
+            Color.Red,
+            Color.Green,
+            Color.Blue,
+            Color.Yellow,
+            Color.Cyan,
+            Color.Magenta
+        ]
+
+        tverts = [
+            SolidEffect.Vertex(position, colors[int(i/4)])
+            for i, position in enumerate(vertices)
+        ]
+
+        return IndexedTriangleList(
+            tverts, [
+				(0,2, 1),  ( 2,3,1),
+				(4,5, 7),  ( 4,7,6),
+				(8,10, 9), (10,11,9),
+				(12,13,15),(12,15,14),
+				(16,17,18),(18,17,19),
+				(20,23,21),(20,22,23)
+            ])
 
     @staticmethod
     def GetSkinned(size: float = 1.0) -> IndexedTriangleList:
@@ -375,7 +435,7 @@ class Cube:
             convert_tex_coord(-1.0, 2.0),
         ]
         tverts = [
-            VertexBase(position, texture_coordinates[i])
+            TextureEffect.Vertex(position, texture_coordinates[i])
             for i, position in enumerate(vertices)
         ]
 
@@ -513,43 +573,104 @@ class Graphics:
     def GetMouseState(self):
         return self.mouse.GetState()
 
-class Pipeline:
+class SolidEffect:
 
-    class Vertex(VertexBase):
+    class Vertex:
+        def __init__(self, pos: Vec3, color: Color):
+            self.pos: Vec3 = pos
+            self.color: Color = color
+
+        def UpdatePos(self, pos: Vec3, src: "SolidEffect.Vertex"):
+            return SolidEffect.Vertex(pos, src.color)
+
+        def __add__(self, other: "SolidEffect.Vertex"):
+            return SolidEffect.Vertex(self.pos + other.pos, self.color)
+
+        def __sub__(self, other: "SolidEffect.Vertex"):
+            return SolidEffect.Vertex(self.pos - other.pos, self.color)
+
+        def __mul__(self, other: Union["SolidEffect.Vertex", float, int]):
+            if isinstance(other, SolidEffect.Vertex):
+                return SolidEffect.Vertex(self.pos * other.pos, self.color)
+            else:
+                return SolidEffect.Vertex(self.pos * other, self.color)
+
+        def __truediv__(self, other:Union["SolidEffect.Vertex", float, int]):
+            if isinstance(other, SolidEffect.Vertex):
+                return SolidEffect.Vertex(self.pos / other.pos, self.color)
+            else:
+                return SolidEffect.Vertex(self.pos / other, self.color)
+
+    class PixelShader:
+        def __init__(self): ...
+
+        def __call__(self, input: "SolidEffect.Vertex") -> Color:
+            return input.color
+
+    def __init__(self):
+        self.ps: SolidEffect.PixelShader = SolidEffect.PixelShader()
+
+class TextureEffect:
+
+    class Vertex:
         def __init__(self, pos: Vec3, t: Vec2):
-            super().__init__(pos, t)
+            self.pos: Vec3 = pos
+            self.t: Vec2 = t
 
-        def __add__(self, other: "Pipeline.Vertex"):
-            return Pipeline.Vertex(self.pos + other.pos, self.t + other.t)
+        def UpdatePos(self, pos: Vec3, src: "TextureEffect.Vertex"):
+            return TextureEffect.Vertex(pos, src.t)
 
-        def __sub__(self, other: "Pipeline.Vertex"):
-            return Pipeline.Vertex(self.pos - other.pos, self.t - other.t)
+        def __add__(self, other: "TextureEffect.Vertex"):
+            return TextureEffect.Vertex(self.pos + other.pos, self.t + other.t)
 
-        def __neg__(self):
-            return Pipeline.Vertex(-self.pos, -self.t)
+        def __sub__(self, other: "TextureEffect.Vertex"):
+            return TextureEffect.Vertex(self.pos - other.pos, self.t - other.t)
 
-        def __mul__(self, other: Union["Pipeline.Vertex", float, int]):
-            if isinstance(other, Pipeline.Vertex):
-                return Pipeline.Vertex(self.pos * other.pos, self.t * other.t)
+        def __mul__(self, other: Union["TextureEffect.Vertex", float, int]):
+            if isinstance(other, TextureEffect.Vertex):
+                return TextureEffect.Vertex(self.pos * other.pos, self.t * other.t)
             else:
-                return Pipeline.Vertex(self.pos * other, self.t * other)
+                return TextureEffect.Vertex(self.pos * other, self.t * other)
 
-        def __truediv__(self, other:Union["Pipeline.Vertex", float, int]):
-            if isinstance(other, Pipeline.Vertex):
-                return Pipeline.Vertex(self.pos / other.pos, self.t / other.t)
+        def __truediv__(self, other:Union["TextureEffect.Vertex", float, int]):
+            if isinstance(other, TextureEffect.Vertex):
+                return TextureEffect.Vertex(self.pos / other.pos, self.t / other.t)
             else:
-                return Pipeline.Vertex(self.pos / other, self.t / other)
+                return TextureEffect.Vertex(self.pos / other, self.t / other)
 
-    @staticmethod
-    def Interpolate(src: "Pipeline.Vertex", dst: "Pipeline.Vertex", alpha: float) -> "Pipeline.Vertex":
-        return src + (dst - src) * alpha
+    class PixelShader:
+        def __init__(self):
+            self.texture: Surface = Surface(0, 0)
+            self.tex_width: float = 0.0
+            self.tex_height: float = 0.0
+            self.tex_xclamp: float = 0.0
+            self.tex_yclamp: float = 0.0
 
-    def __init__(self, graphics: Graphics):
+        def __call__(self, input: "TextureEffect.Vertex") -> Color:
+            return self.texture.GetPixel(
+                int(max(0, min(input.t.x * self.tex_width + 0.5, self.tex_xclamp))),
+                int(max(0, min(input.t.y * self.tex_height + 0.5, self.tex_yclamp)))
+            )
+
+        def BindTexture(self, filename: str):
+            self.texture = Surface.FromFile(filename)
+            self.tex_width = float(self.texture.GetWidth())
+            self.tex_height = float(self.texture.GetHeight())
+            self.tex_xclamp = self.tex_width - 1.0
+            self.tex_yclamp = self.tex_height - 1.0
+
+    def __init__(self):
+        self.ps: TextureEffect.PixelShader = TextureEffect.PixelShader()
+
+class Pipeline(Generic[VertexT]):
+    def __init__(self, graphics: Graphics, effect: Any):
         self.gfx: Final[Graphics] = graphics
         self.pc3: Final[PC3Transformer] = PC3Transformer(self.gfx.surface.GetWidth(), self.gfx.surface.GetHeight())
+        
+        self.effect: Any = effect
+
         self.rotation: Mat3 = Mat3().Identity()
         self.translation : Vec3 = Vec3()
-        self.texture: Surface = Surface(0, 0)
 
     def Draw(self, triangle_list: IndexedTriangleList):
         self._ProcessVertices(triangle_list.vertices, triangle_list.indices)
@@ -559,22 +680,19 @@ class Pipeline:
 
     def BindTranslation(self, translation: Vec3):
         self.translation = translation
-
-    def BindTexture(self, filename: str):
-        self.texture = Surface.FromFile(filename)
     
-    def _ProcessVertices(self, vertices: list[VertexBase], indices: list[tuple[int, int, int]]):
+    def _ProcessVertices(self, vertices: list[Any], indices: list[tuple[int, int, int]]):
         #  create vertex vector for vs output
-        vertices_out: list["Pipeline.Vertex"] = []
+        vertices_out: list[Any] = []
 
         # transform vertices using matrix + vector
         for v in vertices:
-            vertices_out.append(Pipeline.Vertex((v.pos * self.rotation) + self.translation, v.t))
+            vertices_out.append(v.UpdatePos((v.pos * self.rotation) + self.translation, v))
 
 		# assemble triangles from stream of indices and vertices
         self._AssembleTriangles(vertices_out, indices)
 
-    def _AssembleTriangles(self, vertices: list["Pipeline.Vertex"], indices: list[tuple[int, int, int]]):
+    def _AssembleTriangles(self, vertices: list[Any], indices: list[tuple[int, int, int]]):
         for triangle_indices in indices:
             v0 = vertices[triangle_indices[0]]
             v1 = vertices[triangle_indices[1]]
@@ -583,10 +701,10 @@ class Pipeline:
             if((v1.pos - v0.pos).Cross(v2.pos - v0.pos).Dot(v0.pos) <= 0.0):
                 self._ProcessTriangle(v0, v1, v2)
 
-    def _ProcessTriangle(self, v0: "Pipeline.Vertex", v1: "Pipeline.Vertex", v2: "Pipeline.Vertex"):
+    def _ProcessTriangle(self, v0: Any, v1: Any, v2: Any):
         self._PostProcessTriangleVertices(Triangle(v0, v1, v2))
 
-    def _PostProcessTriangleVertices(self, triangle: Triangle[Vertex]):
+    def _PostProcessTriangleVertices(self, triangle: Triangle[Any]):
 		# perspective divide and screen transform for all 3 vertices
         self.pc3.Transform( triangle.v0.pos )
         self.pc3.Transform( triangle.v1.pos )
@@ -595,11 +713,11 @@ class Pipeline:
 		# draw the triangle
         self._DrawTriangle( triangle )
 
-    def _DrawTriangle(self, triangle: Triangle[Vertex]):
+    def _DrawTriangle(self, triangle: Triangle[VertexT]):
         # using pointers so we can swap (for sorting purposes)
-        pv0: "Pipeline.Vertex" = triangle.v0
-        pv1: "Pipeline.Vertex" = triangle.v1
-        pv2: "Pipeline.Vertex" = triangle.v2
+        pv0: VertexT = triangle.v0
+        pv1: VertexT = triangle.v1
+        pv2: VertexT = triangle.v2
 
         # sorting vertices by y
         if( pv1.pos.y < pv0.pos.y ): pv0, pv1 = pv1, pv0
@@ -621,7 +739,7 @@ class Pipeline:
             # alpha_split = (vi - pv0) / (pv2 - pv0)
             # vi = (alpha_split * pv2) + (pv0 * (1 - alpha_split))
             # vi = pv0 + (alpha_split * (pv2 - pv0))
-            vi: "Pipeline.Vertex"  = Pipeline.Interpolate(pv0, pv2, alpha_split)
+            vi  = Interpolate(pv0, pv2, alpha_split)
 
             if( pv1.pos.x < vi.pos.x ): # major right
                 self._DrawFlatBottomTriangle(pv0, pv1, vi)
@@ -630,7 +748,7 @@ class Pipeline:
                 self._DrawFlatBottomTriangle(pv0, vi, pv1)
                 self._DrawFlatTopTriangle(vi, pv1, pv2)
 
-    def _DrawFlatTopTriangle(self, it0: "Pipeline.Vertex", it1: "Pipeline.Vertex", it2: "Pipeline.Vertex"):
+    def _DrawFlatTopTriangle(self, it0: VertexT, it1: VertexT, it2: VertexT):
         # calulcate dVertex / dy
         # change in interpolant for every 1 change in y
         delta_y: float = it2.pos.y - it0.pos.y
@@ -643,7 +761,7 @@ class Pipeline:
         # call the flat triangle render routine
         self._DrawFlatTriangle(it0, it1, it2, dit0, dit1, it_edge1)
 
-    def _DrawFlatBottomTriangle(self, it0: "Pipeline.Vertex", it1: "Pipeline.Vertex", it2: "Pipeline.Vertex"):
+    def _DrawFlatBottomTriangle(self, it0: VertexT, it1: VertexT, it2: VertexT):
         # calulcate dVertex / dy
         # change in interpolant for every 1 change in y
         delta_y: float = it2.pos.y - it0.pos.y
@@ -657,34 +775,28 @@ class Pipeline:
         self._DrawFlatTriangle(it0, it1, it2, dit0, dit1, it_edge1)
 
     def _DrawFlatTriangle(self, 
-                          it0: "Pipeline.Vertex",
-						  it1: "Pipeline.Vertex",
-						  it2: "Pipeline.Vertex",
-						  dv0: "Pipeline.Vertex",
-						  dv1: "Pipeline.Vertex",
-						  it_edge_1: "Pipeline.Vertex"):
+                          it0: VertexT,
+						  it1: VertexT,
+						  it2: VertexT,
+						  dv0: VertexT,
+						  dv1: VertexT,
+						  it_edge_1: VertexT):
 		# create edge interpolant for left edge (always v0)
         it_edge0 = it0
         it_edge1 = it_edge_1
 
 		# calculate start and end scanlines
-        y_start: Final[int] = int(ceil(it0.pos.y - 0.5))
-        y_end: Final[int] = int(ceil(it2.pos.y - 0.5)) # the scanline AFTER the last line drawn
+        y_start: Final[int] = int(ceil(float(it0.pos.y - 0.5)))
+        y_end: Final[int] = int(ceil(float(it2.pos.y - 0.5))) # the scanline AFTER the last line drawn
 
         # do interpolant prestep
         it_edge0 += dv0 * (float( y_start ) + 0.5 - it0.pos.y)
         it_edge1 += dv1 * (float( y_start ) + 0.5 - it0.pos.y)       
-        
-        # prepare clamping constants
-        tex_width: Final[float] = float( self.texture.GetWidth() )
-        tex_height: Final[float] = float( self.texture.GetHeight() )
-        tex_xclamp: Final[float] = tex_width - 1.0
-        tex_yclamp: Final[float] = tex_height - 1.0
 
         for y in range(y_start, y_end):
 			# calculate start and end pixels
-            x_start: int = int(ceil(it_edge0.pos.x - 0.5))
-            x_end: int = int(ceil(it_edge1.pos.x - 0.5)) # the pixel AFTER the last pixel drawn
+            x_start: int = int(ceil(float(it_edge0.pos.x - 0.5)))
+            x_end: int = int(ceil(float(it_edge1.pos.x - 0.5))) # the pixel AFTER the last pixel drawn
 
             # create scanline interpolant startpoint
             # (some waste for interpolating x,y,z, but makes life easier not having
@@ -700,10 +812,7 @@ class Pipeline:
 
             for x in range(x_start, x_end):
                 # perform texture lookup, clamp, and write pixel
-                self.gfx.PutPixel(x, y, self.texture.GetPixel(
-                    int(max(0, min(i_line.t.x * tex_width + 0.5, tex_xclamp))),
-                    int(max(0, min(i_line.t.y * tex_height + 0.5, tex_yclamp)))
-                ))
+                self.gfx.PutPixel(x, y, self.effect.ps(i_line))
 
                 i_line += di_line
 

@@ -1,11 +1,11 @@
 from typing import Union, Final
 from math import pi
-from Utils import Vec2, Vec3, Mat3, Scene, Cube, Color, WrapAngle, Pipeline, TextureEffect
+from Utils import Vec2, Vec3, Mat3, Scene, Cube, Color, WrapAngle, Pipeline, SolidEffect
 
-class TextureCubeScene(Scene):
+class SolidCubeScene(Scene):
     def __init__(self):
         super().__init__()
-        self.it_list = Cube.GetSkinned()
+        self.it_list = Cube.GetPlainIndependentFaces()
         self.d_thete: Final[float] = pi
         self.offset_z: float = 2.0
         self.theta_x: float = 0.0
@@ -29,9 +29,8 @@ class TextureCubeScene(Scene):
 
     def SetupComplete(self):
         if not hasattr(self, 'gfx'): raise Exception("Graphics not found")
-        effect = TextureEffect()
-        effect.ps.BindTexture("./images/office_skin.jpg")
-        self.pipeline: Pipeline[TextureEffect.Vertex] = Pipeline(self.gfx, effect)
+        effect = SolidEffect()
+        self.pipeline: Pipeline[SolidEffect.Vertex] = Pipeline(self.gfx, effect)
 
     def Update(self, key: Union[str, None], mouse_stat: tuple[Vec2, bool, bool], dt: float):
         # m_c = mouse_stat[0]
