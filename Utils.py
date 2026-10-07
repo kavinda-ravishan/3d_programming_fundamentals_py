@@ -10,13 +10,13 @@ VertexT = TypeVar("VertexT", bound="VertexArithmetic")
 class VertexArithmetic(Protocol):
     pos: "Vec3"
 
-    def __add__(self: VertexT, other: VertexT) -> VertexT: ...
-    def __sub__(self: VertexT, other: VertexT) -> VertexT: ...
+    def __add__(self: VertexT, other: Union[VertexT, int, float]) -> VertexT: ...
+    def __sub__(self: VertexT, other: Union[VertexT, int, float]) -> VertexT: ...
     def __mul__(self: VertexT, other: Union[VertexT, int, float]) -> VertexT: ...
     def __truediv__(self: VertexT, other: Union[VertexT, int, float]) -> VertexT: ...
 
 def Interpolate(src: Any, dst: Any, alpha: float) -> Any:
-    return src + (dst - src) * alpha
+    return src + ((dst - src) * alpha)
 
 def WrapAngle(theta: float) -> float:
     """
@@ -583,11 +583,17 @@ class SolidEffect:
         def UpdatePos(self, pos: Vec3, src: "SolidEffect.Vertex"):
             return SolidEffect.Vertex(pos, src.color)
 
-        def __add__(self, other: "SolidEffect.Vertex"):
-            return SolidEffect.Vertex(self.pos + other.pos, self.color)
+        def __add__(self, other: Union["SolidEffect.Vertex", float, int]):
+            if isinstance(other, SolidEffect.Vertex):
+                return SolidEffect.Vertex(self.pos + other.pos, self.color)
+            else:
+                return SolidEffect.Vertex(self.pos + other, self.color)
 
-        def __sub__(self, other: "SolidEffect.Vertex"):
-            return SolidEffect.Vertex(self.pos - other.pos, self.color)
+        def __sub__(self, other: Union["SolidEffect.Vertex", float, int]):
+            if isinstance(other, SolidEffect.Vertex):
+                return SolidEffect.Vertex(self.pos - other.pos, self.color)
+            else:
+                return SolidEffect.Vertex(self.pos - other, self.color)
 
         def __mul__(self, other: Union["SolidEffect.Vertex", float, int]):
             if isinstance(other, SolidEffect.Vertex):
@@ -620,11 +626,17 @@ class TextureEffect:
         def UpdatePos(self, pos: Vec3, src: "TextureEffect.Vertex"):
             return TextureEffect.Vertex(pos, src.t)
 
-        def __add__(self, other: "TextureEffect.Vertex"):
-            return TextureEffect.Vertex(self.pos + other.pos, self.t + other.t)
+        def __add__(self, other: Union["TextureEffect.Vertex", float, int]):
+            if isinstance(other, TextureEffect.Vertex):
+                return TextureEffect.Vertex(self.pos + other.pos, self.t + other.t)
+            else:
+                return TextureEffect.Vertex(self.pos + other, self.t + other)
 
-        def __sub__(self, other: "TextureEffect.Vertex"):
-            return TextureEffect.Vertex(self.pos - other.pos, self.t - other.t)
+        def __sub__(self, other: Union["TextureEffect.Vertex", float, int]):
+            if isinstance(other, TextureEffect.Vertex):
+                return TextureEffect.Vertex(self.pos - other.pos, self.t - other.t)
+            else:
+                return TextureEffect.Vertex(self.pos - other, self.t - other)
 
         def __mul__(self, other: Union["TextureEffect.Vertex", float, int]):
             if isinstance(other, TextureEffect.Vertex):
@@ -682,7 +694,7 @@ class Pipeline(Generic[VertexT]):
         self.translation = translation
     
     def _ProcessVertices(self, vertices: list[Any], indices: list[tuple[int, int, int]]):
-        #  create vertex vector for vs output
+        # create vertex vector for vs output
         vertices_out: list[Any] = []
 
         # transform vertices using matrix + vector
@@ -692,7 +704,7 @@ class Pipeline(Generic[VertexT]):
 		# assemble triangles from stream of indices and vertices
         self._AssembleTriangles(vertices_out, indices)
 
-    def _AssembleTriangles(self, vertices: list[Any], indices: list[tuple[int, int, int]]):
+    def _AssembleTriangles(self, vertices: list[VertexT], indices: list[tuple[int, int, int]]):
         for triangle_indices in indices:
             v0 = vertices[triangle_indices[0]]
             v1 = vertices[triangle_indices[1]]
@@ -701,10 +713,10 @@ class Pipeline(Generic[VertexT]):
             if((v1.pos - v0.pos).Cross(v2.pos - v0.pos).Dot(v0.pos) <= 0.0):
                 self._ProcessTriangle(v0, v1, v2)
 
-    def _ProcessTriangle(self, v0: Any, v1: Any, v2: Any):
+    def _ProcessTriangle(self, v0: VertexT, v1: VertexT, v2: VertexT):
         self._PostProcessTriangleVertices(Triangle(v0, v1, v2))
 
-    def _PostProcessTriangleVertices(self, triangle: Triangle[Any]):
+    def _PostProcessTriangleVertices(self, triangle: Triangle[VertexT]):
 		# perspective divide and screen transform for all 3 vertices
         self.pc3.Transform( triangle.v0.pos )
         self.pc3.Transform( triangle.v1.pos )
@@ -714,39 +726,37 @@ class Pipeline(Generic[VertexT]):
         self._DrawTriangle( triangle )
 
     def _DrawTriangle(self, triangle: Triangle[VertexT]):
-        # using pointers so we can swap (for sorting purposes)
-        pv0: VertexT = triangle.v0
-        pv1: VertexT = triangle.v1
-        pv2: VertexT = triangle.v2
+        v0: VertexT = triangle.v0
+        v1: VertexT = triangle.v1
+        v2: VertexT = triangle.v2
 
         # sorting vertices by y
-        if( pv1.pos.y < pv0.pos.y ): pv0, pv1 = pv1, pv0
-        if( pv2.pos.y < pv1.pos.y ): pv1, pv2 = pv2, pv1
-        if( pv1.pos.y < pv0.pos.y ): pv0, pv1 = pv1, pv0
+        # v0.pos.y < v1.pos.y < v2.pos.y
+        v0, v1, v2 = sorted([v0, v1, v2], key=lambda v: v.pos.y)
 
-        if( pv0.pos.y == pv1.pos.y ): # natural flat top
+        if( v0.pos.y == v1.pos.y ): # natural flat top
             # sorting top vertices by x
-            if( pv1.pos.x < pv0.pos.x ): pv0, pv1 = pv1, pv0
-            self._DrawFlatTopTriangle(pv0, pv1, pv2)
-        elif( pv1.pos.y == pv2.pos.y ): # natural flat bottom
+            if( v1.pos.x < v0.pos.x ): v0, v1 = v1, v0
+            self._DrawFlatTopTriangle(v0, v1, v2)
+        elif( v1.pos.y == v2.pos.y ): # natural flat bottom
             # sorting bottom vertices by x
-            if( pv2.pos.x < pv1.pos.x ): pv1, pv2 = pv2, pv1
-            self._DrawFlatBottomTriangle(pv0, pv1, pv2)
+            if( v2.pos.x < v1.pos.x ): v1, v2 = v2, v1
+            self._DrawFlatBottomTriangle(v0, v1, v2)
         else: # general triangle
             # find splitting vertex
-            alpha_split: float = (pv1.pos.y - pv0.pos.y) / (pv2.pos.y - pv0.pos.y)
+            alpha_split: float = (v1.pos.y - v0.pos.y) / (v2.pos.y - v0.pos.y)
             # alpha_split also,
-            # alpha_split = (vi - pv0) / (pv2 - pv0)
-            # vi = (alpha_split * pv2) + (pv0 * (1 - alpha_split))
-            # vi = pv0 + (alpha_split * (pv2 - pv0))
-            vi  = Interpolate(pv0, pv2, alpha_split)
+            # alpha_split = (vi - v0) / (v2 - v0)
+            # vi = (alpha_split * v2) + (v0 * (1 - alpha_split))
+            # vi = v0 + (alpha_split * (v2 - v0))
+            vi  = Interpolate(v0, v2, alpha_split)
 
-            if( pv1.pos.x < vi.pos.x ): # major right
-                self._DrawFlatBottomTriangle(pv0, pv1, vi)
-                self._DrawFlatTopTriangle(pv1,vi, pv2)
+            if( v1.pos.x < vi.pos.x ): # major right
+                self._DrawFlatBottomTriangle(v0, v1, vi)
+                self._DrawFlatTopTriangle(v1,vi, v2)
             else: # major left
-                self._DrawFlatBottomTriangle(pv0, vi, pv1)
-                self._DrawFlatTopTriangle(vi, pv1, pv2)
+                self._DrawFlatBottomTriangle(v0, vi, v1)
+                self._DrawFlatTopTriangle(vi, v1, v2)
 
     def _DrawFlatTopTriangle(self, it0: VertexT, it1: VertexT, it2: VertexT):
         # calulcate dVertex / dy
@@ -790,8 +800,8 @@ class Pipeline(Generic[VertexT]):
         y_end: Final[int] = int(ceil(float(it2.pos.y - 0.5))) # the scanline AFTER the last line drawn
 
         # do interpolant prestep
-        it_edge0 += dv0 * (float( y_start ) + 0.5 - it0.pos.y)
-        it_edge1 += dv1 * (float( y_start ) + 0.5 - it0.pos.y)       
+        it_edge0 += dv0 * (float(y_start) + 0.5 - it0.pos.y)
+        it_edge1 += dv1 * (float(y_start) + 0.5 - it0.pos.y)       
 
         for y in range(y_start, y_end):
 			# calculate start and end pixels
@@ -808,7 +818,7 @@ class Pipeline(Generic[VertexT]):
             di_line = (it_edge1 - i_line) / dx
 
             # prestep scanline interpolant
-            i_line += di_line * (float( x_start ) + 0.5 - it_edge0.pos.x)
+            i_line += di_line * (float(x_start) + 0.5 - it_edge0.pos.x)
 
             for x in range(x_start, x_end):
                 # perform texture lookup, clamp, and write pixel
