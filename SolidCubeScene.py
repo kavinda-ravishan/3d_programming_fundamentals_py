@@ -58,6 +58,18 @@ class SolidCubeScene(Scene):
         if not hasattr(self, 'gfx'): return
         if not hasattr(self, 'pipeline'): return
 
+        # draw fixed cube
+        rotation_matrix__fix: Final[Mat3] = Mat3.RotationX(-self.theta_x) * Mat3.RotationY(-self.theta_y) * Mat3.RotationZ(-self.theta_z)
+        translation_fix: Final[Vec3] = Vec3(0.0, 0.0, 2.0)
+        
+        # set pipeline transform
+        self.pipeline.BindRotation(rotation_matrix__fix)
+        self.pipeline.BindTranslation(translation_fix)
+
+        self.pipeline.Draw(self.it_list)
+
+
+        # draw mobile cube
         rotation_matrix: Final[Mat3] = Mat3.RotationX(self.theta_x) * Mat3.RotationY(self.theta_y) * Mat3.RotationZ(self.theta_z)
         translation: Final[Vec3] = Vec3(0.0, 0.0, self.offset_z)
     
@@ -66,4 +78,3 @@ class SolidCubeScene(Scene):
         self.pipeline.BindTranslation(translation)
 
         self.pipeline.Draw(self.it_list)
-    
