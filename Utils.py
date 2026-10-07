@@ -319,19 +319,21 @@ class Triangle(Generic[VertexT]):
         self.v2 = deepcopy(v2)
 
 # PC3 : Pre-cliped 3D space
-class PC3Transformer:
+class PC3Transformer(Generic[VertexT]):
     def __init__(self, screen_width: int, screen_height: int) -> None:
         self.x_factor: Final[float] = screen_width / 2
         self.y_factor: Final[float] = screen_height / 2
 
-    def Transform(self, vec: Vec3):
-        z_inv: Final[float] = 1.0 / vec.z
-        vec.x = ((vec.x * z_inv) + 1.0) * self.x_factor
-        vec.y = ((-vec.y * z_inv) + 1.0) * self.y_factor
-        return vec
+    def GetTransform(self, vertex: VertexT):
+        z_inv: Final[float] = 1.0 / vertex.pos.z
 
-    def GetTransformed(self, vec: Vec3):
-        return self.Transform(Vec3.FromVec3(vec))
+        transformed = vertex * z_inv
+
+        transformed.pos.x = (transformed.pos.x + 1.0) * self.x_factor
+        transformed.pos.y = (-transformed.pos.y + 1.0) * self.y_factor
+        transformed.pos.z = z_inv
+
+        return transformed
 
 class IndexedTriangleList:
     def __init__(self, vertices: list[Any], indices: list[tuple[int, int, int]]) -> None:
@@ -677,7 +679,7 @@ class TextureEffect:
 class Pipeline(Generic[VertexT]):
     def __init__(self, graphics: Graphics, effect: Any):
         self.gfx: Final[Graphics] = graphics
-        self.pc3: Final[PC3Transformer] = PC3Transformer(self.gfx.surface.GetWidth(), self.gfx.surface.GetHeight())
+        self.pc3: Final[PC3Transformer[VertexT]] = PC3Transformer(self.gfx.surface.GetWidth(), self.gfx.surface.GetHeight())
         
         self.effect: Any = effect
 
@@ -718,9 +720,9 @@ class Pipeline(Generic[VertexT]):
 
     def _PostProcessTriangleVertices(self, triangle: Triangle[VertexT]):
 		# perspective divide and screen transform for all 3 vertices
-        self.pc3.Transform( triangle.v0.pos )
-        self.pc3.Transform( triangle.v1.pos )
-        self.pc3.Transform( triangle.v2.pos )
+        triangle.v0 = self.pc3.GetTransform( triangle.v0 )
+        triangle.v1 = self.pc3.GetTransform( triangle.v1 )
+        triangle.v2 = self.pc3.GetTransform( triangle.v2 )
 
 		# draw the triangle
         self._DrawTriangle( triangle )
@@ -821,8 +823,11 @@ class Pipeline(Generic[VertexT]):
             i_line += di_line * (float(x_start) + 0.5 - it_edge0.pos.x)
 
             for x in range(x_start, x_end):
+                z = 1.0 / i_line.pos.z
+                attr = i_line * z
+
                 # perform texture lookup, clamp, and write pixel
-                self.gfx.PutPixel(x, y, self.effect.ps(i_line))
+                self.gfx.PutPixel(x, y, self.effect.ps(attr))
 
                 i_line += di_line
 
