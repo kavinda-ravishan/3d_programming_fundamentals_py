@@ -301,6 +301,29 @@ class Color:
         else:
             super().__setattr__(name, value)
 
+class ZBuffer:
+    def __init__(self, width: int, height: int):
+        """
+        Initialize the Z-buffer with given dimensions.
+        Depth values are initialized to +inf (far away).
+        """
+        self.width: Final[int] = width
+        self.height: Final[int] = height
+        self.buffer = np.full((height, width), np.inf, dtype=np.float32)
+
+    def Clear(self):
+        """
+        Reset the Z-buffer
+        """
+        self.buffer.fill(np.inf)
+
+    def TestAndSet(self, x: int, y: int, depth: float):
+        if self.buffer[y][x] > depth:
+            self.buffer[y][x] = depth
+            return True
+        else:
+            return False
+
 Color.White = Color(255, 255, 255)
 Color.Black = Color(0, 0, 0)
 Color.Gray = Color(0x80, 0x80, 0x80)
@@ -549,9 +572,6 @@ class Graphics:
         cv2.namedWindow(window_name)
         cv2.setMouseCallback(window_name, self.mouse.Callback)
 
-    def __del__(self):
-        cv2.destroyAllWindows()
-
     def BeginFrame(self):
         self.ClearFrame()
 
@@ -679,7 +699,12 @@ class TextureEffect:
 class Pipeline(Generic[VertexT]):
     def __init__(self, graphics: Graphics, effect: Any):
         self.gfx: Final[Graphics] = graphics
-        self.pc3: Final[PC3Transformer[VertexT]] = PC3Transformer(self.gfx.surface.GetWidth(), self.gfx.surface.GetHeight())
+
+        frame_width: Final[int] = self.gfx.surface.GetWidth()
+        frame_height: Final[int] = self.gfx.surface.GetHeight()
+
+        self.pc3: Final[PC3Transformer[VertexT]] = PC3Transformer(frame_width, frame_height)
+        self.z_buffer: Final[ZBuffer] = ZBuffer(frame_width, frame_height)
         
         self.effect: Any = effect
 
@@ -694,6 +719,9 @@ class Pipeline(Generic[VertexT]):
 
     def BindTranslation(self, translation: Vec3):
         self.translation = translation
+
+    def BeginFrame(self):
+        self.z_buffer.Clear()
     
     def _ProcessVertices(self, vertices: list[Any], indices: list[tuple[int, int, int]]):
         # create vertex vector for vs output
@@ -826,8 +854,9 @@ class Pipeline(Generic[VertexT]):
                 z = 1.0 / i_line.pos.z
                 attr = i_line * z
 
-                # perform texture lookup, clamp, and write pixel
-                self.gfx.PutPixel(x, y, self.effect.ps(attr))
+                if self.z_buffer.TestAndSet(x, y, z):
+                    # perform texture lookup, clamp, and write pixel
+                    self.gfx.PutPixel(x, y, self.effect.ps(attr))
 
                 i_line += di_line
 

@@ -2,7 +2,7 @@ from typing import Union, Final
 from math import pi
 from Utils import Vec2, Vec3, Mat3, Scene, Cube, Color, WrapAngle, Pipeline, SolidEffect
 
-class SolidCubeScene(Scene):
+class SolidCubesScene(Scene):
     def __init__(self):
         super().__init__()
         self.it_list = Cube.GetPlainIndependentFaces()
@@ -57,6 +57,8 @@ class SolidCubeScene(Scene):
     def Draw(self):
         if not hasattr(self, 'gfx'): return
         if not hasattr(self, 'pipeline'): return
+
+        self.pipeline.BeginFrame()
 
         # draw fixed cube
         rotation_matrix__fix: Final[Mat3] = Mat3.RotationX(-self.theta_x) * Mat3.RotationY(-self.theta_y) * Mat3.RotationZ(-self.theta_z)

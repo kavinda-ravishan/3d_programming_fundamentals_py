@@ -59,6 +59,8 @@ class TextureCubeScene(Scene):
         if not hasattr(self, 'gfx'): return
         if not hasattr(self, 'pipeline'): return
 
+        self.pipeline.BeginFrame()
+
         rotation_matrix: Final[Mat3] = Mat3.RotationX(self.theta_x) * Mat3.RotationY(self.theta_y) * Mat3.RotationZ(self.theta_z)
         translation: Final[Vec3] = Vec3(0.0, 0.0, self.offset_z)
     
