@@ -1,6 +1,9 @@
 from typing import Union, Final
 from math import pi
-from Utils import Vec2, Vec3, Mat3, Scene, Cube, WrapAngle, Pipeline, SolidEffect
+from Utils import Vec2, Vec3, Mat3, WrapAngle
+from Engine import Pipeline, Scene
+from Models import Cube
+from Effects import SolidEffect
 
 class SolidCubesScene(Scene):
     def __init__(self):

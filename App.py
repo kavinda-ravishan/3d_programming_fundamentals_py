@@ -1,4 +1,4 @@
-from Utils import Game
+from Engine import Game
 from SolidCubeScene import SolidCubeScene
 from SolidCubesScene import SolidCubesScene
 from TextureCubeScene import TextureCubeScene

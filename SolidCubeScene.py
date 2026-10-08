@@ -1,6 +1,9 @@
 from typing import Union, Final
 from math import pi
-from Utils import Vec2, Vec3, Mat3, Scene, Cube, WrapAngle, Pipeline, VertexPositionColorEffect
+from Utils import Vec2, Vec3, Mat3, WrapAngle
+from Engine import Pipeline, Scene
+from Models import Cube
+from Effects import VertexPositionColorEffect
 
 class SolidCubeScene(Scene):
     def __init__(self):
