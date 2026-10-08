@@ -1,5 +1,5 @@
 from typing import Any, Union, Final, Generic, TypeVar, overload, Protocol, Self
-from math import sin, cos, pi
+from math import sin, cos, pi, sqrt
 from copy import deepcopy
 
 VertexT = TypeVar("VertexT", bound="VertexArithmetic")
@@ -87,6 +87,18 @@ class Vec3:
     def FromVec3(cls, vec: "Vec3"):
         return cls(vec.x, vec.y, vec.z)
 
+    def Len(self):
+        return sqrt(self.Dot(self))
+
+    def GetNormalize(self):
+        length = self.Len()
+        
+        x = self.x / length
+        y = self.y / length
+        z = self.z / length
+        
+        return Vec3(x, y, z)
+
     def MatMul(self, mat: "Mat3"):
         new_vec = Vec3()
             
@@ -126,6 +138,13 @@ class Vec3:
 
     def ToVec2(self):
         return Vec2(self.x, self.y)
+
+    def Saturate(self):
+        x = min(1.0, max(0.0, self.x))
+        y = min(1.0, max(0.0, self.y))
+        z = min(1.0, max(0.0, self.z))
+        
+        return Vec3(x, y, z)
 
     def __repr__(self):
         return f"Vec3({self.x:.3f}, {self.y:.3f}, {self.z:.3f})"
@@ -294,6 +313,9 @@ class Color:
     @classmethod
     def FromVec3(cls, vec: Vec3):
         return Color(int(vec.x), int(vec.y), int(vec.z))
+
+    def ToVec3(self):
+        return Vec3(self.r, self.g, self.b)
 
     def __repr__(self):
         return f"Color(R: {self.r}, G: {self.g}, B: {self.b})"

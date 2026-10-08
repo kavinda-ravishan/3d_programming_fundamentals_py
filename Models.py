@@ -31,7 +31,7 @@ class Cube:
             ])
 
     @staticmethod
-    def GetPlainIndependentFaces(vertex_converter: Callable[[list[Vec3]], list[Any]], size: float = 1.0) -> IndexedTriangleList:
+    def GetPlainIndependentFaces(vertex_converter: Callable[[list[Vec3], list[Vec3]], list[Any]], size: float = 1.0) -> IndexedTriangleList:
         side: Final[float] = size / 2.0
         vertices: list[Vec3] = [
             Vec3( -side,-side,-side ), # 0 near side
@@ -60,7 +60,34 @@ class Cube:
             Vec3( side,side,side ) # 23
         ]
 
-        tverts = vertex_converter(vertices)
+        normals: list[Vec3] = [
+            Vec3(0.0, 0.0, -1.0),
+            Vec3(0.0, 0.0, -1.0),
+            Vec3(0.0, 0.0, -1.0),
+            Vec3(0.0, 0.0, -1.0),
+            Vec3(0.0, 0.0, 1.0),
+            Vec3(0.0, 0.0, 1.0),
+            Vec3(0.0, 0.0, 1.0),
+            Vec3(0.0, 0.0, 1.0),
+            Vec3(-1.0, 0.0, 0.0),
+            Vec3(-1.0, 0.0, 0.0),
+            Vec3(-1.0, 0.0, 0.0),
+            Vec3(-1.0, 0.0, 0.0),
+            Vec3(1.0, 0.0, 0.0),
+            Vec3(1.0, 0.0, 0.0),
+            Vec3(1.0, 0.0, 0.0),
+            Vec3(1.0, 0.0, 0.0),
+            Vec3(0.0, -1.0, 0.0),
+            Vec3(0.0, -1.0, 0.0),
+            Vec3(0.0, -1.0, 0.0),
+            Vec3(0.0, -1.0, 0.0),
+            Vec3(0.0, 1.0, 0.0),
+            Vec3(0.0, 1.0, 0.0),
+            Vec3(0.0, 1.0, 0.0),
+            Vec3(0.0, 1.0, 0.0)
+        ]
+
+        tverts = vertex_converter(vertices, normals)
 
         return IndexedTriangleList(
             tverts, [

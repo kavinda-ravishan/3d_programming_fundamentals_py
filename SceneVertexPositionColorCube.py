@@ -3,25 +3,23 @@ from math import pi
 from Utils import Vec2, Vec3, Mat3, WrapAngle
 from Engine import Pipeline, Scene
 from Models import Cube
-from Effects import TextureEffect
+from Effects import VertexPositionColorEffect
 
-class TextureCubeScene(Scene):
+class SceneVertexPositionColorCube(Scene):
     def __init__(self):
         super().__init__()
-        self.it_list = Cube.GetSkinned(
-            lambda vertices, texture_coordinates: [TextureEffect.Vertex(position, texture_coordinates[i]) for i, position in enumerate(vertices)]
-        )
+        self.it_list = Cube.GetPlainIndependentFaces(lambda vertices, normals: [VertexPositionColorEffect.Vertex(position) for _, position in enumerate(vertices)])
         self.d_thete: Final[float] = pi
         self.offset_z: float = 2.0
         self.theta_x: float = 0.0
         self.theta_y: float = 0.0
         self.theta_z: float = 0.0
 
+
     def SetupComplete(self):
         if not hasattr(self, 'gfx'): raise Exception("Graphics not found")
-        effect = TextureEffect[TextureEffect.Vertex]()
-        effect.ps.BindTexture("./images/office_skin.jpg")
-        self.pipeline: Pipeline[TextureEffect.Vertex] = Pipeline(self.gfx, effect)
+        effect = VertexPositionColorEffect[VertexPositionColorEffect.Vertex]()
+        self.pipeline = Pipeline[VertexPositionColorEffect.Vertex](self.gfx, effect)
 
     def Update(self, key: Union[str, None], mouse_stat: tuple[Vec2, bool, bool], dt: float):
         # m_c = mouse_stat[0]
@@ -51,6 +49,7 @@ class TextureCubeScene(Scene):
 
         self.pipeline.BeginFrame()
 
+        # draw mobile cube
         rotation_matrix: Final[Mat3] = Mat3.RotationX(self.theta_x) * Mat3.RotationY(self.theta_y) * Mat3.RotationZ(self.theta_z)
         translation: Final[Vec3] = Vec3(0.0, 0.0, self.offset_z)
     
@@ -59,4 +58,3 @@ class TextureCubeScene(Scene):
         self.pipeline.effect.vs.BindTranslation(translation)
 
         self.pipeline.Draw(self.it_list)
-    

@@ -5,7 +5,7 @@ from Engine import Pipeline, Scene
 from Models import Cube
 from Effects import SolidEffect
 
-class SolidCubesScene(Scene):
+class SceneSolidCubes(Scene):
     def __init__(self):
         super().__init__()
         self.it_list = Cube.GetPlain(lambda vertices: [SolidEffect.Vertex(position) for _, position in enumerate(vertices)])
