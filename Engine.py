@@ -198,16 +198,16 @@ class Pipeline(Generic[VertexT]):
         self._AssembleTriangles(vertices_out, indices)
 
     def _AssembleTriangles(self, vertices: list[VertexT], indices: list[tuple[int, int, int]]):
-        for triangle_indices in indices:
+        for i, triangle_indices in enumerate(indices):
             v0 = vertices[triangle_indices[0]]
             v1 = vertices[triangle_indices[1]]
             v2 = vertices[triangle_indices[2]]
 
             if((v1.pos - v0.pos).Cross(v2.pos - v0.pos).Dot(v0.pos) <= 0.0):
-                self._ProcessTriangle(v0, v1, v2)
+                self._ProcessTriangle(v0, v1, v2, i)
 
-    def _ProcessTriangle(self, v0: VertexT, v1: VertexT, v2: VertexT):
-        self._PostProcessTriangleVertices(Triangle(v0, v1, v2))
+    def _ProcessTriangle(self, v0: VertexT, v1: VertexT, v2: VertexT, triangle_index: int):
+        self._PostProcessTriangleVertices(self.effect.gs(v0, v1, v2, triangle_index))
 
     def _PostProcessTriangleVertices(self, triangle: Triangle[VertexT]):
 		# perspective divide and screen transform for all 3 vertices

@@ -1,6 +1,6 @@
 from typing import Union, Final
 from math import pi
-from Utils import Vec2, Vec3, Mat3, WrapAngle
+from Utils import Vec2, Vec3, Mat3, Color, WrapAngle
 from Engine import Pipeline, Scene
 from Models import Cube
 from Effects import SolidEffect
@@ -8,7 +8,7 @@ from Effects import SolidEffect
 class SolidCubesScene(Scene):
     def __init__(self):
         super().__init__()
-        self.it_list = Cube.GetPlainIndependentFaces()
+        self.it_list = Cube.GetPlain()
         self.d_thete: Final[float] = pi
         self.offset_z: float = 2.0
         self.theta_x: float = 0.0
@@ -18,7 +18,19 @@ class SolidCubesScene(Scene):
 
     def SetupComplete(self):
         if not hasattr(self, 'gfx'): raise Exception("Graphics not found")
+
+        colors: Final[list[Color]] = [
+            Color.Red,
+            Color.Green,
+            Color.Blue,
+            Color.Yellow,
+            Color.Cyan,
+            Color.Magenta
+        ]
+
         effect = SolidEffect[SolidEffect.Vertex]()
+        effect.gs.BindColors(colors)
+
         self.pipeline = Pipeline[SolidEffect.Vertex](self.gfx, effect)
 
     def Update(self, key: Union[str, None], mouse_stat: tuple[Vec2, bool, bool], dt: float):

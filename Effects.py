@@ -1,6 +1,10 @@
-from typing import Union, Generic
-from Utils import VertexT, VertexArithmetic, Vec3, Vec2, Mat3, Color
+from typing import Union, Generic, Final
+from Utils import VertexT, VertexArithmetic, Vec3, Vec2, Mat3, Color, Triangle
 from Engine import Surface
+
+class DefaultGeometryShader(Generic[VertexT]):
+    def __call__(self, in0: VertexT, in1: VertexT, in2: VertexT, triangle_index: int):
+        return Triangle(in0, in1, in2)
 
 class DefaultVertexShader(Generic[VertexT]):
     def __init__(self):
@@ -110,50 +114,96 @@ class VertexPositionColorEffect(Generic[VertexT]):
     def __init__(self):
         self.ps: VertexPositionColorEffect.PixelShader = VertexPositionColorEffect.PixelShader()
         self.vs: VertexPositionColorEffect.VertexShader = VertexPositionColorEffect.VertexShader()
+        self.gs: DefaultGeometryShader[VertexT] = DefaultGeometryShader[VertexT]()
 
 class SolidEffect(Generic[VertexT]):
 
     class Vertex(VertexArithmetic):
+        def __init__(self, pos: Vec3):
+            self.pos: Vec3 = pos
+
+        def UpdatePos(self, pos: Vec3, src: "SolidEffect.Vertex"):
+            return SolidEffect.Vertex(pos)
+
+        def __add__(self, other: Union["SolidEffect.Vertex", float, int]):
+            if isinstance(other, SolidEffect.Vertex):
+                return SolidEffect.Vertex(self.pos + other.pos)
+            else:
+                return SolidEffect.Vertex(self.pos + other)
+
+        def __sub__(self, other: Union["SolidEffect.Vertex", float, int]):
+            if isinstance(other, SolidEffect.Vertex):
+                return SolidEffect.Vertex(self.pos - other.pos)
+            else:
+                return SolidEffect.Vertex(self.pos - other)
+
+        def __mul__(self, other: Union["SolidEffect.Vertex", float, int]):
+            if isinstance(other, SolidEffect.Vertex):
+                return SolidEffect.Vertex(self.pos * other.pos)
+            else:
+                return SolidEffect.Vertex(self.pos * other)
+
+        def __truediv__(self, other:Union["SolidEffect.Vertex", float, int]):
+            if isinstance(other, SolidEffect.Vertex):
+                return SolidEffect.Vertex(self.pos / other.pos)
+            else:
+                return SolidEffect.Vertex(self.pos / other)
+
+    class GSOut(VertexArithmetic):
         def __init__(self, pos: Vec3, color: Color):
             self.pos: Vec3 = pos
             self.color: Color = color
 
-        def UpdatePos(self, pos: Vec3, src: "SolidEffect.Vertex"):
-            return SolidEffect.Vertex(pos, src.color)
+        def UpdatePos(self, pos: Vec3, src: "SolidEffect.GSOut"):
+            return SolidEffect.GSOut(pos, src.color)
 
-        def __add__(self, other: Union["SolidEffect.Vertex", float, int]):
-            if isinstance(other, SolidEffect.Vertex):
-                return SolidEffect.Vertex(self.pos + other.pos, self.color)
+        def __add__(self, other: Union["SolidEffect.GSOut", float, int]):
+            if isinstance(other, SolidEffect.GSOut):
+                return SolidEffect.GSOut(self.pos + other.pos, self.color)
             else:
-                return SolidEffect.Vertex(self.pos + other, self.color)
+                return SolidEffect.GSOut(self.pos + other, self.color)
 
-        def __sub__(self, other: Union["SolidEffect.Vertex", float, int]):
-            if isinstance(other, SolidEffect.Vertex):
-                return SolidEffect.Vertex(self.pos - other.pos, self.color)
+        def __sub__(self, other: Union["SolidEffect.GSOut", float, int]):
+            if isinstance(other, SolidEffect.GSOut):
+                return SolidEffect.GSOut(self.pos - other.pos, self.color)
             else:
-                return SolidEffect.Vertex(self.pos - other, self.color)
+                return SolidEffect.GSOut(self.pos - other, self.color)
 
-        def __mul__(self, other: Union["SolidEffect.Vertex", float, int]):
-            if isinstance(other, SolidEffect.Vertex):
-                return SolidEffect.Vertex(self.pos * other.pos, self.color)
+        def __mul__(self, other: Union["SolidEffect.GSOut", float, int]):
+            if isinstance(other, SolidEffect.GSOut):
+                return SolidEffect.GSOut(self.pos * other.pos, self.color)
             else:
-                return SolidEffect.Vertex(self.pos * other, self.color)
+                return SolidEffect.GSOut(self.pos * other, self.color)
 
-        def __truediv__(self, other:Union["SolidEffect.Vertex", float, int]):
-            if isinstance(other, SolidEffect.Vertex):
-                return SolidEffect.Vertex(self.pos / other.pos, self.color)
+        def __truediv__(self, other:Union["SolidEffect.GSOut", float, int]):
+            if isinstance(other, SolidEffect.GSOut):
+                return SolidEffect.GSOut(self.pos / other.pos, self.color)
             else:
-                return SolidEffect.Vertex(self.pos / other, self.color)
+                return SolidEffect.GSOut(self.pos / other, self.color)
+
+    class GeometryShader:
+        def __init__(self) -> None:
+            self.triangle_colors: list[Color] = []
+
+        def BindColors(self, colors: list[Color]):
+            self.triangle_colors = colors
+
+        def __call__(self, in0: VertexT, in1: VertexT, in2: VertexT, triangle_index: int):
+            out0 = SolidEffect.GSOut(in0.pos, self.triangle_colors[(int(triangle_index/2))])
+            out1 = SolidEffect.GSOut(in1.pos, self.triangle_colors[(int(triangle_index/2))])
+            out2 = SolidEffect.GSOut(in2.pos, self.triangle_colors[(int(triangle_index/2))])
+            return Triangle(out0, out1, out2)
 
     class PixelShader:
         def __init__(self): ...
 
-        def __call__(self, input: "SolidEffect.Vertex") -> Color:
+        def __call__(self, input: "SolidEffect.GSOut") -> Color:
             return input.color
 
     def __init__(self):
         self.ps: SolidEffect.PixelShader = SolidEffect.PixelShader()
         self.vs: DefaultVertexShader[VertexT] = DefaultVertexShader[VertexT]()
+        self.gs: SolidEffect.GeometryShader = SolidEffect.GeometryShader()
 
 class TextureEffect(Generic[VertexT]):
 
@@ -213,3 +263,4 @@ class TextureEffect(Generic[VertexT]):
     def __init__(self):
         self.ps: TextureEffect.PixelShader = TextureEffect.PixelShader()
         self.vs: DefaultVertexShader[VertexT] = DefaultVertexShader[VertexT]()
+        self.gs: DefaultGeometryShader[VertexT] = DefaultGeometryShader[VertexT]()

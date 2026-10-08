@@ -5,10 +5,10 @@ from Engine import Pipeline, Scene
 from Models import Cube
 from Effects import VertexPositionColorEffect
 
-class SolidCubeScene(Scene):
+class VertexPositionColorCubeScene(Scene):
     def __init__(self):
         super().__init__()
-        self.it_list = Cube.GetPlainIndependentFaces(1.0, False)
+        self.it_list = Cube.GetPlainIndependentFaces(1.0)
         self.d_thete: Final[float] = pi
         self.offset_z: float = 2.0
         self.theta_x: float = 0.0
