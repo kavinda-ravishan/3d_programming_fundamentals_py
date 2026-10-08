@@ -8,7 +8,9 @@ from Effects import TextureEffect
 class TextureCubeScene(Scene):
     def __init__(self):
         super().__init__()
-        self.it_list = Cube.GetSkinned()
+        self.it_list = Cube.GetSkinned(
+            lambda vertices, texture_coordinates: [TextureEffect.Vertex(position, texture_coordinates[i]) for i, position in enumerate(vertices)]
+        )
         self.d_thete: Final[float] = pi
         self.offset_z: float = 2.0
         self.theta_x: float = 0.0

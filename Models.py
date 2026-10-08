@@ -1,12 +1,11 @@
-from typing import Final
+from typing import Final, Callable, Any
 from Utils import IndexedTriangleList, Vec3, Vec2
-from Effects import TextureEffect, SolidEffect, VertexPositionColorEffect
 
 class Cube:
     def __init__(self, ) -> None: ...
 
     @staticmethod
-    def GetPlain(size: float = 1.0) -> IndexedTriangleList:
+    def GetPlain(vertex_converter: Callable[[list[Vec3]], list[Any]], size: float = 1.0) -> IndexedTriangleList:
         side: Final[float] = size / 2.0
         vertices: list[Vec3] = [
             Vec3( -side,-side,-side ), # 0
@@ -19,10 +18,7 @@ class Cube:
             Vec3( side,side,side ) # 7
         ]
 
-        tverts = [
-            SolidEffect.Vertex(position)
-            for _, position in enumerate(vertices)
-        ]
+        tverts = vertex_converter(vertices)
 
         return IndexedTriangleList(
             tverts, [
@@ -35,7 +31,7 @@ class Cube:
             ])
 
     @staticmethod
-    def GetPlainIndependentFaces(size: float = 1.0) -> IndexedTriangleList:
+    def GetPlainIndependentFaces(vertex_converter: Callable[[list[Vec3]], list[Any]], size: float = 1.0) -> IndexedTriangleList:
         side: Final[float] = size / 2.0
         vertices: list[Vec3] = [
             Vec3( -side,-side,-side ), # 0 near side
@@ -64,10 +60,7 @@ class Cube:
             Vec3( side,side,side ) # 23
         ]
 
-        tverts = [
-            VertexPositionColorEffect.Vertex(position)
-            for _, position in enumerate(vertices)
-        ]
+        tverts = vertex_converter(vertices)
 
         return IndexedTriangleList(
             tverts, [
@@ -80,7 +73,7 @@ class Cube:
             ])
 
     @staticmethod
-    def GetSkinned(size: float = 1.0) -> IndexedTriangleList:
+    def GetSkinned(vertex_converter: Callable[[list[Vec3], list[Vec2]], list[Any]], size: float = 1.0) -> IndexedTriangleList:
         side: Final[float] = size / 2.0
 
         def convert_tex_coord(u: float, v: float) -> Vec2:
@@ -119,10 +112,7 @@ class Cube:
             convert_tex_coord(-1.0, 2.0)
         ]
         
-        tverts = [
-            TextureEffect.Vertex(position, texture_coordinates[i])
-            for i, position in enumerate(vertices)
-        ]
+        tverts = vertex_converter(vertices, texture_coordinates)
 
         return IndexedTriangleList(
             tverts, [

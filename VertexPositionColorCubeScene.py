@@ -8,7 +8,7 @@ from Effects import VertexPositionColorEffect
 class VertexPositionColorCubeScene(Scene):
     def __init__(self):
         super().__init__()
-        self.it_list = Cube.GetPlainIndependentFaces(1.0)
+        self.it_list = Cube.GetPlainIndependentFaces(lambda vertices: [VertexPositionColorEffect.Vertex(position) for _, position in enumerate(vertices)])
         self.d_thete: Final[float] = pi
         self.offset_z: float = 2.0
         self.theta_x: float = 0.0

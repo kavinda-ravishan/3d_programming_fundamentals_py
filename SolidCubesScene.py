@@ -8,7 +8,7 @@ from Effects import SolidEffect
 class SolidCubesScene(Scene):
     def __init__(self):
         super().__init__()
-        self.it_list = Cube.GetPlain()
+        self.it_list = Cube.GetPlain(lambda vertices: [SolidEffect.Vertex(position) for _, position in enumerate(vertices)])
         self.d_thete: Final[float] = pi
         self.offset_z: float = 2.0
         self.theta_x: float = 0.0
