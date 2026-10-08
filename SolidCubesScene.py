@@ -1,6 +1,6 @@
 from typing import Union, Final
 from math import pi
-from Utils import Vec2, Vec3, Mat3, Scene, Cube, Color, WrapAngle, Pipeline, SolidEffect
+from Utils import Vec2, Vec3, Mat3, Scene, Cube, WrapAngle, Pipeline, SolidEffect
 
 class SolidCubesScene(Scene):
     def __init__(self):
@@ -12,25 +12,11 @@ class SolidCubesScene(Scene):
         self.theta_y: float = 0.0
         self.theta_z: float = 0.0
 
-        self.colors: Final[list[Color]] = [
-            Color.White,
-            Color.Blue,
-            Color.Cyan,
-            Color.Gray,
-            Color.Green,
-            Color.Magenta,
-            Color.LightGray,
-            Color.Red,
-            Color.Yellow,
-            Color.White,
-            Color.Blue,
-            Color.Cyan
-        ]
 
     def SetupComplete(self):
         if not hasattr(self, 'gfx'): raise Exception("Graphics not found")
-        effect = SolidEffect()
-        self.pipeline: Pipeline[SolidEffect.Vertex] = Pipeline(self.gfx, effect)
+        effect = SolidEffect[SolidEffect.Vertex]()
+        self.pipeline = Pipeline[SolidEffect.Vertex](self.gfx, effect)
 
     def Update(self, key: Union[str, None], mouse_stat: tuple[Vec2, bool, bool], dt: float):
         # m_c = mouse_stat[0]
@@ -65,8 +51,8 @@ class SolidCubesScene(Scene):
         translation_fix: Final[Vec3] = Vec3(0.0, 0.0, 2.0)
         
         # set pipeline transform
-        self.pipeline.BindRotation(rotation_matrix__fix)
-        self.pipeline.BindTranslation(translation_fix)
+        self.pipeline.effect.vs.BindRotation(rotation_matrix__fix)
+        self.pipeline.effect.vs.BindTranslation(translation_fix)
 
         self.pipeline.Draw(self.it_list)
 
@@ -76,7 +62,7 @@ class SolidCubesScene(Scene):
         translation: Final[Vec3] = Vec3(0.0, 0.0, self.offset_z)
     
     	# set pipeline transform
-        self.pipeline.BindRotation(rotation_matrix)
-        self.pipeline.BindTranslation(translation)
+        self.pipeline.effect.vs.BindRotation(rotation_matrix)
+        self.pipeline.effect.vs.BindTranslation(translation)
 
         self.pipeline.Draw(self.it_list)

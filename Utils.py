@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Union, Optional, Final, Generic, TypeVar, overload, Protocol
+from typing import Any, Union, Optional, Final, Generic, TypeVar, overload, Protocol, Self
 from math import sin, cos, pi, ceil
 from copy import deepcopy
 import cv2
@@ -10,10 +10,12 @@ VertexT = TypeVar("VertexT", bound="VertexArithmetic")
 class VertexArithmetic(Protocol):
     pos: "Vec3"
 
-    def __add__(self: VertexT, other: Union[VertexT, int, float]) -> VertexT: ...
-    def __sub__(self: VertexT, other: Union[VertexT, int, float]) -> VertexT: ...
-    def __mul__(self: VertexT, other: Union[VertexT, int, float]) -> VertexT: ...
-    def __truediv__(self: VertexT, other: Union[VertexT, int, float]) -> VertexT: ...
+    def __add__(self, other: Union[Self, int, float]) -> Self: ...
+    def __sub__(self, other: Union[Self, int, float]) -> Self: ...
+    def __mul__(self, other: Union[Self, int, float]) -> Self: ...
+    def __truediv__(self, other: Union[Self, int, float]) -> Self: ...
+
+    def UpdatePos(self, pos: "Vec3", src: Self) -> Self: ...
 
 def Interpolate(src: Any, dst: Any, alpha: float) -> Any:
     return src + ((dst - src) * alpha)
@@ -292,6 +294,10 @@ class Color:
         self.g = int(g)
         self.b = int(b)
 
+    @classmethod
+    def FromVec3(cls, vec: Vec3):
+        return Color(int(vec.x), int(vec.y), int(vec.z))
+
     def __repr__(self):
         return f"Color(R: {self.r}, G: {self.g}, B: {self.b})"
 
@@ -367,7 +373,7 @@ class Cube:
     def __init__(self, ) -> None: ...
 
     @staticmethod
-    def GetPlainIndependentFaces(size: float = 1.0) -> IndexedTriangleList:
+    def GetPlainIndependentFaces(size: float = 1.0, color: bool = True) -> IndexedTriangleList:
         side: Final[float] = size / 2.0
         vertices: list[Vec3] = [
             Vec3( -side,-side,-side ), # 0 near side
@@ -396,19 +402,27 @@ class Cube:
             Vec3( side,side,side ) # 23
         ]
 
-        colors: list[Color] = [
-            Color.Red,
-            Color.Green,
-            Color.Blue,
-            Color.Yellow,
-            Color.Cyan,
-            Color.Magenta
-        ]
+        tverts: list[Any] = []
 
-        tverts = [
-            SolidEffect.Vertex(position, colors[int(i/4)])
-            for i, position in enumerate(vertices)
-        ]
+        if color:
+            colors: list[Color] = [
+                Color.Red,
+                Color.Green,
+                Color.Blue,
+                Color.Yellow,
+                Color.Cyan,
+                Color.Magenta
+            ]
+
+            tverts = [
+                SolidEffect.Vertex(position, colors[int(i/4)])
+                for i, position in enumerate(vertices)
+            ]
+        else:
+            tverts = [
+                VertexPositionColorEffect.Vertex(position)
+                for _, position in enumerate(vertices)
+            ]
 
         return IndexedTriangleList(
             tverts, [
@@ -595,9 +609,118 @@ class Graphics:
     def GetMouseState(self):
         return self.mouse.GetState()
 
-class SolidEffect:
+class DefaultVertexShader(Generic[VertexT]):
+    def __init__(self):
+        self.rotation: Mat3 = Mat3().Identity()
+        self.translation : Vec3 = Vec3()
 
-    class Vertex:
+    def BindRotation(self, rotation: Mat3):
+        self.rotation = rotation
+
+    def BindTranslation(self, translation: Vec3):
+        self.translation = translation
+
+    def __call__(self, input: VertexT):
+            # transform vertices using matrix + vector
+            return input.UpdatePos((input.pos * self.rotation) + self.translation, input)
+
+class VertexPositionColorEffect(Generic[VertexT]):
+    class Vertex(VertexArithmetic):
+        def __init__(self, pos: Vec3):
+            self.pos: Vec3 = pos
+
+        def UpdatePos(self, pos: Vec3, src: "VertexPositionColorEffect.Vertex"):
+            return VertexPositionColorEffect.Vertex(pos)
+
+        def __add__(self, other: Union["VertexPositionColorEffect.Vertex", float, int]):
+            if isinstance(other, VertexPositionColorEffect.Vertex):
+                return VertexPositionColorEffect.Vertex(self.pos + other.pos)
+            else:
+                return VertexPositionColorEffect.Vertex(self.pos + other)
+
+        def __sub__(self, other: Union["VertexPositionColorEffect.Vertex", float, int]):
+            if isinstance(other, VertexPositionColorEffect.Vertex):
+                return VertexPositionColorEffect.Vertex(self.pos - other.pos)
+            else:
+                return VertexPositionColorEffect.Vertex(self.pos - other)
+
+        def __mul__(self, other: Union["VertexPositionColorEffect.Vertex", float, int]):
+            if isinstance(other, VertexPositionColorEffect.Vertex):
+                return VertexPositionColorEffect.Vertex(self.pos * other.pos)
+            else:
+                return VertexPositionColorEffect.Vertex(self.pos * other)
+
+        def __truediv__(self, other:Union["VertexPositionColorEffect.Vertex", float, int]):
+            if isinstance(other, VertexPositionColorEffect.Vertex):
+                return VertexPositionColorEffect.Vertex(self.pos / other.pos)
+            else:
+                return VertexPositionColorEffect.Vertex(self.pos / other)
+
+    class VSOut(VertexArithmetic):
+        def __init__(self, pos: Vec3, color: Vec3):
+            self.pos: Vec3 = pos
+            self.color: Vec3 = color
+
+        def UpdatePos(self, pos: Vec3, src: "VertexPositionColorEffect.VSOut"):
+            return VertexPositionColorEffect.VSOut(pos, src.color)
+
+        def __add__(self, other: Union["VertexPositionColorEffect.VSOut", float, int]):
+            if isinstance(other, VertexPositionColorEffect.VSOut):
+                return VertexPositionColorEffect.VSOut(self.pos + other.pos, self.color + other.color)
+            else:
+                return VertexPositionColorEffect.VSOut(self.pos + other, self.color + other)
+
+        def __sub__(self, other: Union["VertexPositionColorEffect.VSOut", float, int]):
+            if isinstance(other, VertexPositionColorEffect.VSOut):
+                return VertexPositionColorEffect.VSOut(self.pos - other.pos, self.color - other.color)
+            else:
+                return VertexPositionColorEffect.VSOut(self.pos - other, self.color - other)
+
+        def __mul__(self, other: Union["VertexPositionColorEffect.VSOut", float, int]):
+            if isinstance(other, VertexPositionColorEffect.VSOut):
+                return VertexPositionColorEffect.VSOut(self.pos * other.pos, self.color * other.color)
+            else:
+                return VertexPositionColorEffect.VSOut(self.pos * other, self.color * other)
+
+        def __truediv__(self, other:Union["VertexPositionColorEffect.VSOut", float, int]):
+            if isinstance(other, VertexPositionColorEffect.VSOut):
+                return VertexPositionColorEffect.VSOut(self.pos / other.pos, self.color / other.color)
+            else:
+                return VertexPositionColorEffect.VSOut(self.pos / other, self.color / other)
+
+    class VertexShader:
+        def __init__(self):
+            self.rotation: Mat3 = Mat3().Identity()
+            self.translation : Vec3 = Vec3()
+
+        def BindRotation(self, rotation: Mat3):
+            self.rotation = rotation
+
+        def BindTranslation(self, translation: Vec3):
+            self.translation = translation
+
+        def __call__(self, input: VertexPositionColorEffect.Vertex) -> VertexPositionColorEffect.VSOut:
+
+                pos = (input.pos * self.rotation) + self.translation
+                color = Vec3(abs(pos.x), abs(pos.y), abs(min(1.0, 1/pos.z))) * 255.0
+
+                input.color = color # type: ignore
+                # transform vertices using matrix + vector
+                return VertexPositionColorEffect.VSOut(pos, color)
+
+    class PixelShader:
+        def __init__(self): ...
+
+        def __call__(self, input: "VertexPositionColorEffect.VSOut") -> Color:
+            return Color.FromVec3(input.color)
+
+    def __init__(self):
+        self.ps: VertexPositionColorEffect.PixelShader = VertexPositionColorEffect.PixelShader()
+        self.vs: VertexPositionColorEffect.VertexShader = VertexPositionColorEffect.VertexShader()
+
+class SolidEffect(Generic[VertexT]):
+
+    class Vertex(VertexArithmetic):
         def __init__(self, pos: Vec3, color: Color):
             self.pos: Vec3 = pos
             self.color: Color = color
@@ -637,10 +760,11 @@ class SolidEffect:
 
     def __init__(self):
         self.ps: SolidEffect.PixelShader = SolidEffect.PixelShader()
+        self.vs: DefaultVertexShader[VertexT] = DefaultVertexShader[VertexT]()
 
-class TextureEffect:
+class TextureEffect(Generic[VertexT]):
 
-    class Vertex:
+    class Vertex(VertexArithmetic):
         def __init__(self, pos: Vec3, t: Vec2):
             self.pos: Vec3 = pos
             self.t: Vec2 = t
@@ -695,6 +819,7 @@ class TextureEffect:
 
     def __init__(self):
         self.ps: TextureEffect.PixelShader = TextureEffect.PixelShader()
+        self.vs: DefaultVertexShader[VertexT] = DefaultVertexShader[VertexT]()
 
 class Pipeline(Generic[VertexT]):
     def __init__(self, graphics: Graphics, effect: Any):
@@ -708,17 +833,8 @@ class Pipeline(Generic[VertexT]):
         
         self.effect: Any = effect
 
-        self.rotation: Mat3 = Mat3().Identity()
-        self.translation : Vec3 = Vec3()
-
     def Draw(self, triangle_list: IndexedTriangleList):
         self._ProcessVertices(triangle_list.vertices, triangle_list.indices)
-
-    def BindRotation(self, rotation: Mat3):
-        self.rotation = rotation
-
-    def BindTranslation(self, translation: Vec3):
-        self.translation = translation
 
     def BeginFrame(self):
         self.z_buffer.Clear()
@@ -727,9 +843,9 @@ class Pipeline(Generic[VertexT]):
         # create vertex vector for vs output
         vertices_out: list[Any] = []
 
-        # transform vertices using matrix + vector
+        # call vertex shader on each vertex
         for v in vertices:
-            vertices_out.append(v.UpdatePos((v.pos * self.rotation) + self.translation, v))
+            vertices_out.append(self.effect.vs(v))
 
 		# assemble triangles from stream of indices and vertices
         self._AssembleTriangles(vertices_out, indices)
