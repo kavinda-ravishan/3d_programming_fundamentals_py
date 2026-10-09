@@ -164,7 +164,6 @@ class WaveVertexTextureEffec(Generic[VertexT]):
         self.gs: WaveVertexTextureEffec.GeometryShader = WaveVertexTextureEffec.GeometryShader()
         self.ps: WaveVertexTextureEffec.PixelShader = WaveVertexTextureEffec.PixelShader()
 
-
 class VertexFlatEffect(Generic[VertexT]):
     class Vertex(VertexArithmetic):
         def __init__(self, pos: Vec3, n: Vec3):
@@ -451,7 +450,7 @@ class SolidEffect(Generic[VertexT]):
         def BindColors(self, colors: list[Color]):
             self.triangle_colors = colors
 
-        def __call__(self, in0: VertexT, in1: VertexT, in2: VertexT, triangle_index: int):
+        def __call__(self, in0: SolidEffect.Vertex, in1: SolidEffect.Vertex, in2: SolidEffect.Vertex, triangle_index: int):
 
             color_rgb = self.triangle_colors[(int(triangle_index/2))]
             color: Vec3 = Vec3(color_rgb.r / 255, color_rgb.g / 255, color_rgb.b / 255)
