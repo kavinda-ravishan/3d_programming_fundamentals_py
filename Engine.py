@@ -168,16 +168,19 @@ class Graphics:
         return self.mouse.GetState()
 
 class Pipeline(Generic[VertexT]):
-    def __init__(self, graphics: Graphics, effect: Any):
+    def __init__(self, graphics: Graphics, effect: Any, z_buffer: Optional[ZBuffer] = None):
         self.gfx: Final[Graphics] = graphics
 
         frame_width: Final[int] = self.gfx.surface.GetWidth()
         frame_height: Final[int] = self.gfx.surface.GetHeight()
 
         self.pc3: Final[PC3Transformer[VertexT]] = PC3Transformer(frame_width, frame_height)
-        self.z_buffer: Final[ZBuffer] = ZBuffer(frame_width, frame_height)
+        self.z_buffer: Final[ZBuffer] = ZBuffer(frame_width, frame_height) if z_buffer is None else z_buffer
         
         self.effect: Any = effect
+
+    def GetZBuffer(self):
+        return self.z_buffer
 
     def Draw(self, triangle_list: IndexedTriangleList):
         self._ProcessVertices(triangle_list.vertices, triangle_list.indices)

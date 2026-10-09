@@ -5,6 +5,7 @@ from SceneTextureCube import SceneTextureCube
 from SceneFlatIndependentCube import SceneFlatIndependentCube
 from SceneWaveVertexTexture import SceneWaveVertexTexture
 from SceneGouraud import SceneGouraud
+from ScenePoint import ScenePoint
 
 if '__main__' == __name__:
     frame_width = 320
@@ -16,6 +17,7 @@ if '__main__' == __name__:
         frame_height, 
         fps, 
         [
+            ScenePoint(), 
             SceneGouraud(), 
             SceneWaveVertexTexture(), 
             SceneFlatIndependentCube(), 

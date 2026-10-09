@@ -1,0 +1,94 @@
+from typing import Union, Final
+from math import pi
+from Utils import Vec2, Vec3, Mat3, WrapAngle
+from Engine import Pipeline, Scene
+from Models import Sphere
+from Effects import GouraudPointEffect, SolidEffect
+
+class ScenePoint(Scene):
+    def __init__(self):
+        super().__init__()
+        self.it_list = Sphere.GetPlain(
+            lambda vertices, normals: [GouraudPointEffect.Vertex(position, normals[i]) for i, position in enumerate(vertices)]
+        )
+        self.light_indicator = Sphere.GetPlain(
+            lambda vertices, _: [SolidEffect.Vertex(position) for position in vertices], 0.05
+        )
+        
+        self.d_thete: Final[float] = pi
+        self.offset_z: float = 2.0
+        self.theta_x: float = 0.0
+        self.theta_y: float = 0.0
+        self.theta_z: float = 0.0
+
+        self.lpos_x: float = 0.0
+        self.lpos_y: float = 0.0
+        self.lpos_z: float = 0.6
+
+    def SetupComplete(self):
+        if not hasattr(self, 'gfx'): raise Exception("Graphics not found")
+        effect = GouraudPointEffect[GouraudPointEffect.Vertex]()
+        self.pipeline = Pipeline[GouraudPointEffect.Vertex](self.gfx, effect)
+        
+        effect = SolidEffect[SolidEffect.Vertex]()
+        self.li_pipeline = Pipeline[SolidEffect.Vertex](self.gfx, effect, self.pipeline.GetZBuffer())
+
+    def Update(self, key: Union[str, None], mouse_stat: tuple[Vec2, bool, bool], dt: float):
+        # m_c = mouse_stat[0]
+        # m_lb = mouse_stat[1]
+        # m_rb = mouse_stat[2]
+
+        if 'q' == key:
+            self.theta_x = WrapAngle(self.theta_x + (self.d_thete * dt))
+        elif 'w' == key:
+            self.theta_y = WrapAngle(self.theta_y + (self.d_thete * dt))
+        elif 'e' == key:
+            self.theta_z = WrapAngle(self.theta_z + (self.d_thete * dt))
+        elif 'a' == key:
+            self.theta_x = WrapAngle(self.theta_x - (self.d_thete * dt))
+        elif 's' == key:
+            self.theta_y = WrapAngle(self.theta_y - (self.d_thete * dt))
+        elif 'd' == key:
+            self.theta_z = WrapAngle(self.theta_z - (self.d_thete * dt))
+
+        elif 'r' == key:
+            self.offset_z += (2.0 * dt)
+        elif 'f' == key:
+            self.offset_z -= (2.0 * dt)
+        
+        elif 'u' == key:
+            self.lpos_x += (2.0 * dt)
+        elif 'i' == key:
+            self.lpos_x -= (2.0 * dt)
+        elif 'o' == key:
+            self.lpos_y += (2.0 * dt)
+        elif 'j' == key:
+            self.lpos_y -= (2.0 * dt)
+        elif 'k' == key:
+            self.lpos_z += (2.0 * dt)
+        elif 'l' == key:
+            self.lpos_z -= (2.0 * dt)
+
+    def Draw(self):
+        if not hasattr(self, 'gfx'): return
+        if not hasattr(self, 'pipeline'): return
+
+        self.pipeline.BeginFrame()
+
+        # draw mobile cube
+        rotation_matrix: Final[Mat3] = Mat3.RotationX(self.theta_x) * Mat3.RotationY(self.theta_y) * Mat3.RotationZ(self.theta_z)
+        translation: Final[Vec3] = Vec3(0.0, 0.0, self.offset_z)
+        light_position: Final[Vec3] = Vec3(self.lpos_x, self.lpos_y, self.lpos_z)
+    
+    	# set pipeline transform
+        self.pipeline.effect.vs.BindRotation(rotation_matrix)
+        self.pipeline.effect.vs.BindTranslation(translation)
+        self.pipeline.effect.vs.SetLightPosition(light_position)
+
+        self.pipeline.Draw(self.it_list)
+
+        # draw light indicator with different pipeline
+        # don't call beginframe on this pipeline b/c wanna keep zbuffer contents
+        # (don't like this assymetry but we'll live with it for now)
+        self.li_pipeline.effect.vs.BindTranslation(light_position)
+        self.li_pipeline.Draw(self.light_indicator)
