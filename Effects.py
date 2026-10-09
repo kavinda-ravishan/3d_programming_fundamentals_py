@@ -22,6 +22,128 @@ class DefaultVertexShader(Generic[VertexT]):
             # transform vertices using matrix + vector
             return input.UpdatePos((input.pos * self.rotation) + self.translation, input)
 
+class PhongPointEffect(Generic[VertexT]):
+    class Vertex(VertexArithmetic):
+        def __init__(self, pos: Vec3, n: Vec3):
+            self.pos: Vec3 = pos
+            self.n: Vec3 = n
+
+        def UpdatePos(self, pos: Vec3, src: "PhongPointEffect.Vertex"):
+            return PhongPointEffect.Vertex(pos, src.n)
+
+        def __add__(self, other: Union["PhongPointEffect.Vertex", float, int]):
+            if isinstance(other, PhongPointEffect.Vertex):
+                return PhongPointEffect.Vertex(self.pos + other.pos, self.n)
+            else:
+                return PhongPointEffect.Vertex(self.pos + other, self.n)
+
+        def __sub__(self, other: Union["PhongPointEffect.Vertex", float, int]):
+            if isinstance(other, PhongPointEffect.Vertex):
+                return PhongPointEffect.Vertex(self.pos - other.pos, self.n)
+            else:
+                return PhongPointEffect.Vertex(self.pos - other, self.n)
+
+        def __mul__(self, other: Union["PhongPointEffect.Vertex", float, int]):
+            if isinstance(other, PhongPointEffect.Vertex):
+                return PhongPointEffect.Vertex(self.pos * other.pos, self.n)
+            else:
+                return PhongPointEffect.Vertex(self.pos * other, self.n)
+
+        def __truediv__(self, other:Union["PhongPointEffect.Vertex", float, int]):
+            if isinstance(other, PhongPointEffect.Vertex):
+                return PhongPointEffect.Vertex(self.pos / other.pos, self.n)
+            else:
+                return PhongPointEffect.Vertex(self.pos / other, self.n)
+
+    class VSOut(VertexArithmetic):
+        def __init__(self, pos: Vec3, n: Vec3, world_pos: Vec3):
+            self.pos: Vec3 = pos
+            self.n: Vec3 = n
+            self.world_pos: Vec3 = world_pos
+
+        def UpdatePos(self, pos: Vec3, src: "PhongPointEffect.VSOut"):
+            return PhongPointEffect.VSOut(pos, src.n, src.world_pos)
+
+        def __add__(self, other: Union["PhongPointEffect.VSOut", float, int]):
+            if isinstance(other, PhongPointEffect.VSOut):
+                return PhongPointEffect.VSOut(self.pos + other.pos, self.n + other.n, self.world_pos + other.world_pos)
+            else:
+                return PhongPointEffect.VSOut(self.pos + other, self.n + other, self.world_pos + other)
+
+        def __sub__(self, other: Union["PhongPointEffect.VSOut", float, int]):
+            if isinstance(other, PhongPointEffect.VSOut):
+                return PhongPointEffect.VSOut(self.pos - other.pos, self.n - other.n, self.world_pos - other.world_pos)
+            else:
+                return PhongPointEffect.VSOut(self.pos - other, self.n - other, self.world_pos - other)
+
+        def __mul__(self, other: Union["PhongPointEffect.VSOut", float, int]):
+            if isinstance(other, PhongPointEffect.VSOut):
+                return PhongPointEffect.VSOut(self.pos * other.pos, self.n * other.n, self.world_pos * other.world_pos)
+            else:
+                return PhongPointEffect.VSOut(self.pos * other, self.n * other, self.world_pos * other)
+
+        def __truediv__(self, other:Union["PhongPointEffect.VSOut", float, int]):
+            if isinstance(other, PhongPointEffect.VSOut):
+                return PhongPointEffect.VSOut(self.pos / other.pos, self.n / other.n, self.world_pos / other.world_pos)
+            else:
+                return PhongPointEffect.VSOut(self.pos / other, self.n / other, self.world_pos / other)
+
+
+    class VertexShader:
+        def __init__(self):
+            self.rotation: Mat3 = Mat3().Identity()
+            self.translation : Vec3 = Vec3()
+
+        def BindRotation(self, rotation: Mat3):
+            self.rotation = rotation
+
+        def BindTranslation(self, translation: Vec3):
+            self.translation = translation
+
+        def SetLightPosition(self, pos: Vec3):
+            self.light_pos = pos
+
+        def __call__(self, input: PhongPointEffect.Vertex) -> PhongPointEffect.VSOut:
+            # transform mech vertex position before lighting calc
+            pos = (input.pos * self.rotation) + self.translation
+            n = input.n * self.rotation
+
+            # transform vertices using matrix + vector
+            return PhongPointEffect.VSOut(pos, n, pos)
+
+    class PixelShader:
+        def __init__(self):
+            self.light_pos: Vec3 = Vec3(0.0, 0.0, 0.5)
+            self.light_diffuse: Vec3 = Vec3(1.0, 1.0, 1.0)
+            self.light_ambient: Vec3 = Vec3(0.1, 0.1, 0.1)
+            self.material_color: Vec3 = Vec3(0.8, 0.85, 1.0)
+            self.linear_attenuation: float = 1.0
+            self.quadradic_attenuation: float = 2.619
+            self.constant_attenuation: float = 0.382
+
+        def SetLightPosition(self, pos: Vec3):
+            self.light_pos = pos
+
+        def __call__(self, input: "PhongPointEffect.VSOut") -> Color:
+            # vertex to light data
+            v_to_l = self.light_pos - input.world_pos
+            dist = v_to_l.Len()
+            dir = v_to_l / dist
+            # calculate attenuation
+            attenuation = 1.0 / (self.constant_attenuation + (self.linear_attenuation * dist) + (self.quadradic_attenuation * dist * dist))
+            # calculate intensity based on angle of incidence and attenuation
+            d = self.light_diffuse * attenuation * max(0.0, input.n.GetNormalized().Dot(dir))
+            # add diffuse+ambient, filter by material color, saturate and scale
+            c = self.material_color * (d + self.light_ambient).Saturate() * 255.0
+
+            return Color.FromVec3(c)
+
+    def __init__(self):
+        self.vs: PhongPointEffect.VertexShader = PhongPointEffect.VertexShader()
+        self.gs: DefaultGeometryShader[VertexT] = DefaultGeometryShader[VertexT]()
+        self.ps: PhongPointEffect.PixelShader = PhongPointEffect.PixelShader()
+
+
 class GouraudPointEffect(Generic[VertexT]):
     class Vertex(VertexArithmetic):
         def __init__(self, pos: Vec3, n: Vec3):
@@ -136,7 +258,6 @@ class GouraudPointEffect(Generic[VertexT]):
         self.vs: GouraudPointEffect.VertexShader = GouraudPointEffect.VertexShader()
         self.gs: DefaultGeometryShader[VertexT] = DefaultGeometryShader[VertexT]()
         self.ps: GouraudPointEffect.PixelShader = GouraudPointEffect.PixelShader()
-
 
 class GouraudEffect(Generic[VertexT]):
     class Vertex(VertexArithmetic):
