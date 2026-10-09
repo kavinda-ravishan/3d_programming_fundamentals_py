@@ -123,6 +123,49 @@ class GouraudEffect(Generic[VertexT]):
             # transform vertices using matrix + vector
             return GouraudEffect.VSOut(pos, c)
 
+    class GeometryShader:
+        def __init__(self) -> None:
+            self.triangle_colors: list[Color] = [
+                Color.Gray,
+                Color.LightGray,
+                Color.Red,
+                Color.Green,
+                Color.Blue,
+                Color.Yellow,
+                Color.Cyan,
+                Color.Magenta,
+                Color.Orange,
+                Color.Purple,
+                Color.Brown,
+                Color.Pink,
+                Color.Gold,
+                Color.Silver,
+                Color.Teal,
+                Color.Olive,
+                Color.Maroon,
+                Color.Navy,
+                Color.Lime,
+                Color.Aqua,
+                Color.Fuchsia,
+                Color.Indigo,
+                Color.Violet,
+                Color.Beige,
+                Color.Chocolate,
+                Color.Coral,
+                Color.Turquoise,
+                Color.SkyBlue,
+            ]
+
+        def __call__(self, in0: GouraudEffect.VSOut, in1: GouraudEffect.VSOut, in2: GouraudEffect.VSOut, triangle_index: int):
+
+            cid = triangle_index%len(self.triangle_colors)
+
+            out0 = GouraudEffect.VSOut(in0.pos, self.triangle_colors[cid].ToVec3())
+            out1 = GouraudEffect.VSOut(in1.pos, self.triangle_colors[cid].ToVec3())
+            out2 = GouraudEffect.VSOut(in2.pos, self.triangle_colors[cid].ToVec3())
+
+            return Triangle(out0, out1, out2)
+
     class PixelShader:
         def __init__(self): ...
 
@@ -131,6 +174,7 @@ class GouraudEffect(Generic[VertexT]):
 
     def __init__(self):
         self.vs: GouraudEffect.VertexShader = GouraudEffect.VertexShader()
+        # self.gs: GouraudEffect.GeometryShader = GouraudEffect.GeometryShader()
         self.gs: DefaultGeometryShader[VertexT] = DefaultGeometryShader[VertexT]()
         self.ps: GouraudEffect.PixelShader = GouraudEffect.PixelShader()
 
@@ -227,8 +271,6 @@ class WaveVertexTextureEffec(Generic[VertexT]):
 
     class GeometryShader:
         def __init__(self) -> None:
-            self.triangle_colors: list[Color] = []
-
             self.dir: Vec3 = Vec3(0.0, 0.0, 1.0)
             self.diffuse: float = 1.0
             self.ambient: float = 0.15

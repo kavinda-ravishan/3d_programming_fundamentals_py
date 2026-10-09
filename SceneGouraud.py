@@ -17,7 +17,7 @@ class SceneGouraud(Scene):
         self.theta_y: float = 0.0
         self.theta_z: float = 0.0
 
-        self.light_dir: Final[Vec3] = Vec3(0.5, -0.35, -0.75).GetNormalized()
+        self.light_dir: Final[Vec3] = Vec3(0.0, 0.0, 1.0)
         self.phi_x: float = 0.0
         self.phi_y: float = 0.0
         self.phi_z: float = 0.0

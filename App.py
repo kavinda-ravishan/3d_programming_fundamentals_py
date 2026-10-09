@@ -7,8 +7,8 @@ from SceneWaveVertexTexture import SceneWaveVertexTexture
 from SceneGouraud import SceneGouraud
 
 if '__main__' == __name__:
-    frame_width = 800
-    frame_height = 800
+    frame_width = 320
+    frame_height = 320
     fps = 24.0
 
     game = Game(
