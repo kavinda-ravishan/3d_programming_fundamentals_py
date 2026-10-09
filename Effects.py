@@ -175,7 +175,7 @@ class WaveVertexTextureEffec(Generic[VertexT]):
             self.t: Vec2 = t
 
         def UpdatePos(self, pos: Vec3, src: "WaveVertexTextureEffec.GSOut"):
-            return WaveVertexTextureEffec.GSOut(pos, src.t, self.l)
+            return WaveVertexTextureEffec.GSOut(pos, src.t, src.l)
 
         def __add__(self, other: Union["WaveVertexTextureEffec.GSOut", float, int]):
             if isinstance(other, WaveVertexTextureEffec.GSOut):
