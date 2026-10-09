@@ -307,7 +307,9 @@ class Pipeline(Generic[VertexT]):
             i_line = it_edge0
 
             # calculate delta scanline interpolant / dx
+            if it_edge1.pos.x == it_edge0.pos.x: continue
             dx: float = it_edge1.pos.x - it_edge0.pos.x
+
             di_line = (it_edge1 - i_line) / dx
 
             # prestep scanline interpolant
