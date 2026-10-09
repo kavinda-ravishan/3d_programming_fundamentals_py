@@ -1,6 +1,46 @@
 from typing import Final, Callable, Any
 from Utils import IndexedTriangleList, Vec3, Vec2
 
+class Plain:
+    def __init__(self) -> None: ...
+
+    @staticmethod
+    def GetPlain(vertex_converter: Callable[[list[Vec3], list[Vec2]], list[Any]], divisions: int = 7, size: float = 1.0):
+        n_vertices_side = divisions + 1
+        vertices: list[Vec3] = []
+
+        side: float = size / 2.0
+        division_size: float = size / float(divisions)
+        bottom_left: Vec3 = Vec3(-side, -side, 0.0)
+
+        for y in range(n_vertices_side):
+            y_pos: float = float(y) * division_size
+            for x in range(n_vertices_side):
+                vertices.append(bottom_left + Vec3(float(x) * division_size, y_pos, 0.0))
+
+        indices: list[tuple[int, int, int]] = []
+        def vxy2i(x: int, y: int):
+            return (y * n_vertices_side) + x;
+
+        for y in range(divisions):
+            for x in range(divisions):
+                index_array: tuple[int, int, int, int] = (vxy2i( x,y ), vxy2i( x + 1,y ), vxy2i( x,y + 1 ), vxy2i( x + 1,y + 1 ))
+                indices.append((index_array[0], index_array[2], index_array[1]))
+                indices.append((index_array[1], index_array[2], index_array[3]))
+
+        texture_coordinates: list[Vec2] = []
+        t_division_size = 1.0 / float( divisions )
+        t_bottom_left = Vec2(0.0, 1.0)
+
+        for y in range(n_vertices_side):
+            y_t = -float(y) * t_division_size
+            for x in range(n_vertices_side):
+                texture_coordinates.append(t_bottom_left + Vec2(float(x) * t_division_size, y_t))
+
+        tverts = vertex_converter(vertices, texture_coordinates)
+
+        return IndexedTriangleList(tverts, indices)
+
 class Cube:
     def __init__(self, ) -> None: ...
 

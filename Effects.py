@@ -1,4 +1,5 @@
 from typing import Union, Generic
+from math import sin
 from Utils import VertexT, VertexArithmetic, Vec3, Vec2, Mat3, Color, Triangle
 from Engine import Surface
 
@@ -20,6 +21,149 @@ class DefaultVertexShader(Generic[VertexT]):
     def __call__(self, input: VertexT):
             # transform vertices using matrix + vector
             return input.UpdatePos((input.pos * self.rotation) + self.translation, input)
+
+class WaveVertexTextureEffec(Generic[VertexT]):
+
+    class Vertex(VertexArithmetic):
+        def __init__(self, pos: Vec3, t: Vec2):
+            self.pos: Vec3 = pos
+            self.t: Vec2 = t
+
+        def UpdatePos(self, pos: Vec3, src: "WaveVertexTextureEffec.Vertex"):
+            return WaveVertexTextureEffec.Vertex(pos, src.t)
+
+        def __add__(self, other: Union["WaveVertexTextureEffec.Vertex", float, int]):
+            if isinstance(other, WaveVertexTextureEffec.Vertex):
+                return WaveVertexTextureEffec.Vertex(self.pos + other.pos, self.t)
+            else:
+                return WaveVertexTextureEffec.Vertex(self.pos + other, self.t)
+
+        def __sub__(self, other: Union["WaveVertexTextureEffec.Vertex", float, int]):
+            if isinstance(other, WaveVertexTextureEffec.Vertex):
+                return WaveVertexTextureEffec.Vertex(self.pos - other.pos, self.t)
+            else:
+                return WaveVertexTextureEffec.Vertex(self.pos - other, self.t)
+
+        def __mul__(self, other: Union["WaveVertexTextureEffec.Vertex", float, int]):
+            if isinstance(other, WaveVertexTextureEffec.Vertex):
+                return WaveVertexTextureEffec.Vertex(self.pos * other.pos, self.t)
+            else:
+                return WaveVertexTextureEffec.Vertex(self.pos * other, self.t)
+
+        def __truediv__(self, other:Union["WaveVertexTextureEffec.Vertex", float, int]):
+            if isinstance(other, WaveVertexTextureEffec.Vertex):
+                return WaveVertexTextureEffec.Vertex(self.pos / other.pos, self.t)
+            else:
+                return WaveVertexTextureEffec.Vertex(self.pos / other, self.t)
+
+    class GSOut(VertexArithmetic):
+        def __init__(self, pos: Vec3, t: Vec2, l: float):
+            self.pos: Vec3 = pos
+            self.l: float = l
+            self.t: Vec2 = t
+
+        def UpdatePos(self, pos: Vec3, src: "WaveVertexTextureEffec.GSOut"):
+            return WaveVertexTextureEffec.GSOut(pos, src.t, self.l)
+
+        def __add__(self, other: Union["WaveVertexTextureEffec.GSOut", float, int]):
+            if isinstance(other, WaveVertexTextureEffec.GSOut):
+                return WaveVertexTextureEffec.GSOut(self.pos + other.pos, self.t + other.t, self.l)
+            else:
+                return WaveVertexTextureEffec.GSOut(self.pos + other, self.t + other, self.l)
+
+        def __sub__(self, other: Union["WaveVertexTextureEffec.GSOut", float, int]):
+            if isinstance(other, WaveVertexTextureEffec.GSOut):
+                return WaveVertexTextureEffec.GSOut(self.pos - other.pos, self.t - other.t, self.l)
+            else:
+                return WaveVertexTextureEffec.GSOut(self.pos - other, self.t - other, self.l)
+
+        def __mul__(self, other: Union["WaveVertexTextureEffec.GSOut", float, int]):
+            if isinstance(other, WaveVertexTextureEffec.GSOut):
+                return WaveVertexTextureEffec.GSOut(self.pos * other.pos, self.t * other.t, self.l)
+            else:
+                return WaveVertexTextureEffec.GSOut(self.pos * other, self.t * other, self.l)
+
+        def __truediv__(self, other:Union["WaveVertexTextureEffec.GSOut", float, int]):
+            if isinstance(other, WaveVertexTextureEffec.GSOut):
+                return WaveVertexTextureEffec.GSOut(self.pos / other.pos, self.t / other.t, self.l)
+            else:
+                return WaveVertexTextureEffec.GSOut(self.pos / other, self.t / other, self.l)
+
+    class VertexShader:
+        def __init__(self):
+            self.rotation: Mat3 = Mat3().Identity()
+            self.translation : Vec3 = Vec3()
+
+            self.time: float = 0.0
+            self.freq_wave: float = 10.0
+            self.freq_scroll: float = 5.0
+            self.amplitude: float = 0.05
+
+        def BindRotation(self, rotation: Mat3):
+            self.rotation = rotation
+
+        def BindTranslation(self, translation: Vec3):
+            self.translation = translation
+
+        def SetTime(self, t: float):
+            self.time = t
+
+        def __call__(self, input: WaveVertexTextureEffec.Vertex) -> WaveVertexTextureEffec.Vertex:
+                pos = (input.pos * self.rotation) + self.translation
+                pos.y += self.amplitude * sin(self.time * self.freq_scroll + pos.x * self.freq_wave)
+                return input.UpdatePos(pos, input)
+
+    class GeometryShader:
+        def __init__(self) -> None:
+            self.triangle_colors: list[Color] = []
+
+            self.dir: Vec3 = Vec3(0.0, 0.0, 1.0)
+            self.diffuse: float = 1.0
+            self.ambient: float = 0.15
+
+        def SetLightDirection(self, dl: Vec3):
+            self.dir = dl
+
+        def __call__(self, in0: WaveVertexTextureEffec.Vertex, in1: WaveVertexTextureEffec.Vertex, in2: WaveVertexTextureEffec.Vertex, triangle_index: int):
+
+            n = (in1.pos - in0.pos).Cross(in2.pos - in0.pos).GetNormalize()
+            d = self.diffuse * max(0.0, -(n.Dot(self.dir)))
+            l = min(1.0, d + self.ambient)
+
+            out0 = WaveVertexTextureEffec.GSOut(in0.pos, in0.t, l)
+            out1 = WaveVertexTextureEffec.GSOut(in1.pos, in1.t, l)
+            out2 = WaveVertexTextureEffec.GSOut(in2.pos, in2.t, l)
+
+            return Triangle(out0, out1, out2)
+
+    class PixelShader:
+        def __init__(self):
+            self.texture: Surface = Surface(0, 0)
+            self.tex_width: float = 0.0
+            self.tex_height: float = 0.0
+            self.tex_xclamp: float = 0.0
+            self.tex_yclamp: float = 0.0
+
+        def __call__(self, input: "WaveVertexTextureEffec.GSOut") -> Color:
+            color = self.texture.GetPixel(
+                int(max(0, min(input.t.x * self.tex_width + 0.5, self.tex_xclamp))),
+                int(max(0, min(input.t.y * self.tex_height + 0.5, self.tex_yclamp)))
+            )
+
+            return Color(int(color.r * input.l), int(color.g * input.l), int(color.b * input.l))
+
+        def BindTexture(self, filename: str):
+            self.texture = Surface.FromFile(filename)
+            self.tex_width = float(self.texture.GetWidth())
+            self.tex_height = float(self.texture.GetHeight())
+            self.tex_xclamp = self.tex_width - 1.0
+            self.tex_yclamp = self.tex_height - 1.0
+
+    def __init__(self):
+        self.vs: WaveVertexTextureEffec.VertexShader = WaveVertexTextureEffec.VertexShader()
+        self.gs: WaveVertexTextureEffec.GeometryShader = WaveVertexTextureEffec.GeometryShader()
+        self.ps: WaveVertexTextureEffec.PixelShader = WaveVertexTextureEffec.PixelShader()
+
 
 class VertexFlatEffect(Generic[VertexT]):
     class Vertex(VertexArithmetic):
@@ -303,7 +447,6 @@ class SolidEffect(Generic[VertexT]):
             # this is intensity of indirect light that bounces off other obj in scene
 		    # color light so need values per color component
             self.ambient: Vec3 = Vec3(0.1, 0.1, 0.1)
-
 
         def BindColors(self, colors: list[Color]):
             self.triangle_colors = colors
