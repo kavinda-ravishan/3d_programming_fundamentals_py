@@ -1,5 +1,94 @@
 from typing import Final, Callable, Any
-from Utils import IndexedTriangleList, Vec3, Vec2
+from math import pi
+from Utils import IndexedTriangleList, Vec3, Vec2, Mat3
+
+class Sphere:
+    def __init__(self) -> None: ...
+    
+    @staticmethod
+    def GetPlain(vertex_converter: Callable[[list[Vec3], list[Vec3]], list[Any]], radius: float = 1.0, lat_div: int = 12, long_div:int = 24 ):
+        base: Vec3 = Vec3(0.0, 0.0, radius)
+        lattitude_angle: float = pi / lat_div
+        longitude_angle: float = (2.0 * pi) / long_div
+		
+        vertices: list[Vec3] = []
+        for i_lat in range(1, lat_div):
+            lat_base = base * Mat3.RotationX(lattitude_angle * i_lat)
+            for i_long in range(long_div):
+                vertices.append(lat_base * Mat3.RotationZ( longitude_angle * i_long ))
+
+        # add the cap vertices
+        i_north_pole = len(vertices)
+        vertices.append(base)
+        i_south_pole = len(vertices)
+        vertices.append(-base)
+
+        def calc_idx(i_lat: int, i_long: int):
+            return i_lat * long_div + i_long
+        
+        indices: list[tuple[int, int, int]] = []
+        for i_lat in range(lat_div - 2):
+            for i_long in range(long_div - 1):
+                indices.append((
+                    calc_idx( i_lat,i_long ),
+                    calc_idx( i_lat + 1,i_long ),
+                    calc_idx( i_lat,i_long + 1 )
+                ))
+                indices.append((
+                    calc_idx( i_lat,i_long + 1 ),
+                    calc_idx( i_lat + 1,i_long ),
+                    calc_idx( i_lat + 1,i_long + 1 )
+                ))
+
+            # wrap band
+            indices.append((
+                calc_idx( i_lat,long_div - 1 ),
+                calc_idx( i_lat + 1,long_div - 1 ),
+                calc_idx( i_lat,0 )
+            ))
+
+            indices.append((
+                calc_idx( i_lat,0 ),
+                calc_idx( i_lat + 1,long_div - 1 ),
+                calc_idx( i_lat + 1,0 )
+            ))
+
+		# cap fans
+        for i_long in range(long_div - 1):
+            # north
+            indices.append((
+                i_north_pole,
+                calc_idx( 0,i_long ),
+                calc_idx( 0,i_long + 1 ),
+            ))
+            # south
+            indices.append((
+                calc_idx( lat_div - 2,i_long + 1 ),
+                calc_idx( lat_div - 2,i_long ),
+                i_south_pole,
+            ))
+
+		# wrap triangles
+		# north
+        indices.append((
+            i_north_pole,
+            calc_idx( 0,long_div - 1 ),
+            calc_idx( 0,0 ),
+        ))
+		# south
+        indices.append((
+            calc_idx( lat_div - 2,0 ),
+            calc_idx( lat_div - 2,long_div - 1 ),
+            i_south_pole,
+        ))
+
+        normals: list[Vec3] = []
+        for v in vertices:
+            normals.append(v.GetNormalized())
+
+        tverts = vertex_converter(vertices, normals)
+
+        return IndexedTriangleList(tverts, indices)
 
 class Plain:
     def __init__(self) -> None: ...

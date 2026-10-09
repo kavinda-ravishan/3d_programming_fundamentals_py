@@ -68,7 +68,6 @@ class Surface:
     def GetWidth(self): return self.width
     def GetHeight(self): return self.height
 
-
 class Mouse:
     def __init__(self):
         self.pos = Vec2(0, 0)

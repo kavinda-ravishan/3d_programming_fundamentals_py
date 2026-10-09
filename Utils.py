@@ -90,7 +90,7 @@ class Vec3:
     def Len(self):
         return sqrt(self.Dot(self))
 
-    def GetNormalize(self):
+    def GetNormalized(self):
         length = self.Len()
         
         x = self.x / length
@@ -294,16 +294,36 @@ class Mat3:
         )
 
 class Color:
-    White: "Color"
-    Black: "Color"
-    Gray: "Color"
-    LightGray: "Color"
-    Red: "Color"
-    Green: "Color"
-    Blue: "Color"
-    Yellow: "Color"
-    Cyan: "Color"
-    Magenta: "Color"
+    White: Color
+    Black: Color
+    Gray: Color
+    LightGray: Color
+    Red: Color
+    Green: Color
+    Blue: Color
+    Yellow: Color
+    Cyan: Color
+    Magenta: Color
+    Orange: Color
+    Purple: Color
+    Brown: Color
+    Pink: Color
+    Gold: Color
+    Silver: Color
+    Teal: Color
+    Olive: Color
+    Maroon: Color
+    Navy: Color
+    Lime: Color
+    Aqua: Color
+    Fuchsia: Color
+    Indigo: Color
+    Violet: Color
+    Beige: Color
+    Chocolate: Color
+    Coral: Color
+    Turquoise: Color
+    SkyBlue: Color
 
     def __init__(self, r: int = 0, g: int = 0, b: int = 0):
         self.r = int(r)
@@ -326,16 +346,36 @@ class Color:
         else:
             super().__setattr__(name, value)
 
-Color.White = Color(255, 255, 255)
-Color.Black = Color(0, 0, 0)
-Color.Gray = Color(0x80, 0x80, 0x80)
-Color.LightGray = Color(0xD3, 0xD3, 0xD3)
-Color.Red = Color(255, 0, 0)
-Color.Green = Color(0, 255, 0)
-Color.Blue = Color(0, 0, 255)
-Color.Yellow = Color(255, 255, 0)
-Color.Cyan = Color(0, 255, 255)
-Color.Magenta = Color(255, 0, 255)
+Color.White       = Color(255, 255, 255)
+Color.Black       = Color(0, 0, 0)
+Color.Gray        = Color(0x80, 0x80, 0x80)
+Color.LightGray   = Color(0xD3, 0xD3, 0xD3)
+Color.Red         = Color(255, 0, 0)
+Color.Green       = Color(0, 255, 0)
+Color.Blue        = Color(0, 0, 255)
+Color.Yellow      = Color(255, 255, 0)
+Color.Cyan        = Color(0, 255, 255)
+Color.Magenta     = Color(255, 0, 255)
+Color.Orange      = Color(255, 165, 0)
+Color.Purple      = Color(128, 0, 128)
+Color.Brown       = Color(165, 42, 42)
+Color.Pink        = Color(255, 192, 203)
+Color.Gold        = Color(255, 215, 0)
+Color.Silver      = Color(192, 192, 192)
+Color.Teal        = Color(0, 128, 128)
+Color.Olive       = Color(128, 128, 0)
+Color.Maroon      = Color(128, 0, 0)
+Color.Navy        = Color(0, 0, 128)
+Color.Lime        = Color(50, 205, 50)
+Color.Aqua        = Color(0, 255, 255)   # alias for Cyan
+Color.Fuchsia     = Color(255, 0, 255)   # alias for Magenta
+Color.Indigo      = Color(75, 0, 130)
+Color.Violet      = Color(238, 130, 238)
+Color.Beige       = Color(245, 245, 220)
+Color.Chocolate   = Color(210, 105, 30)
+Color.Coral       = Color(255, 127, 80)
+Color.Turquoise   = Color(64, 224, 208)
+Color.SkyBlue     = Color(135, 206, 235)
 
 class Triangle(Generic[VertexT]):
     def __init__(self, v0: VertexT, v1: VertexT, v2: VertexT):
