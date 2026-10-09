@@ -9,7 +9,7 @@ class SceneGouraud(Scene):
     def __init__(self):
         super().__init__()
         self.it_list = Sphere.GetPlain(
-            lambda vertices, normals: [GouraudEffect.Vertex(position, normals[i]) for i, position in enumerate(vertices)], 1, 6, 12
+            lambda vertices, normals: [GouraudEffect.Vertex(position, normals[i]) for i, position in enumerate(vertices)]
         )
         self.d_thete: Final[float] = pi
         self.offset_z: float = 2.0
