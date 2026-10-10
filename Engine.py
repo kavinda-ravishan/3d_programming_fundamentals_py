@@ -205,7 +205,7 @@ class Pipeline(Generic[VertexT]):
             v1 = vertices[triangle_indices[1]]
             v2 = vertices[triangle_indices[2]]
 
-            if((v1.pos - v0.pos).Cross(v2.pos - v0.pos).Dot(v0.pos) <= 0.0):
+            if((v1.pos.ToVec3() - v0.pos.ToVec3()).Cross(v2.pos.ToVec3() - v0.pos.ToVec3()).Dot(v0.pos.ToVec3()) <= 0.0):
                 self._ProcessTriangle(v0, v1, v2, i)
 
     def _ProcessTriangle(self, v0: VertexT, v1: VertexT, v2: VertexT, triangle_index: int):

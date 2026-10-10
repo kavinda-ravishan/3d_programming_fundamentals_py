@@ -1,11 +1,11 @@
 from Engine import Game
-from SceneVertexPositionColorCube import SceneVertexPositionColorCube
-from SceneSolidCubes import SceneSolidCubes
-from SceneTextureCube import SceneTextureCube
-from SceneFlatIndependentCube import SceneFlatIndependentCube
-from SceneWaveVertexTexture import SceneWaveVertexTexture
-from SceneGouraud import SceneGouraud
-from ScenePoint import ScenePoint
+# from SceneVertexPositionColorCube import SceneVertexPositionColorCube
+# from SceneSolidCubes import SceneSolidCubes
+# from SceneTextureCube import SceneTextureCube
+# from SceneFlatIndependentCube import SceneFlatIndependentCube
+# from SceneWaveVertexTexture import SceneWaveVertexTexture
+# from SceneGouraud import SceneGouraud
+# from ScenePoint import ScenePoint
 from ScenePhongPoint import ScenePhongPoint
 
 if '__main__' == __name__:
@@ -19,13 +19,13 @@ if '__main__' == __name__:
         fps, 
         [
             ScenePhongPoint(), 
-            ScenePoint(), 
-            SceneGouraud(), 
-            SceneWaveVertexTexture(), 
-            SceneFlatIndependentCube(), 
-            SceneVertexPositionColorCube(), 
-            SceneSolidCubes(), 
-            SceneTextureCube()
+            # ScenePoint(), 
+            # SceneGouraud(), 
+            # SceneWaveVertexTexture(), 
+            # SceneFlatIndependentCube(), 
+            # SceneVertexPositionColorCube(), 
+            # SceneSolidCubes(), 
+            # SceneTextureCube()
         ]
     )
     

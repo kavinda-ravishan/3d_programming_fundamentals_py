@@ -1,6 +1,6 @@
 from typing import Union, Final
 from math import pi
-from Utils import Vec2, Vec3, Mat3, WrapAngle
+from Utils import Vec2, Vec3, Mat4, WrapAngle
 from Engine import Pipeline, Scene
 from Models import Sphere
 from Models import Cube
@@ -10,10 +10,10 @@ class ScenePhongPoint(Scene):
     def __init__(self):
         super().__init__()
         self.it_list = Cube.GetPlainIndependentFaces(
-            lambda vertices, normals: [PhongPointEffect.Vertex(position, normals[i]) for i, position in enumerate(vertices)]
+            lambda vertices, normals: [PhongPointEffect.Vertex(position.ToVec4(), normals[i].ToVec4()) for i, position in enumerate(vertices)]
         )
         self.light_indicator = Sphere.GetPlain(
-            lambda vertices, _: [SolidEffect.Vertex(position) for position in vertices], 0.05
+            lambda vertices, _: [SolidEffect.Vertex(position.ToVec4()) for position in vertices], 0.05
         )
         
         self.d_thete: Final[float] = pi
@@ -77,13 +77,15 @@ class ScenePhongPoint(Scene):
         self.pipeline.BeginFrame()
 
         # draw mobile cube
-        rotation_matrix: Final[Mat3] = Mat3.RotationX(self.theta_x) * Mat3.RotationY(self.theta_y) * Mat3.RotationZ(self.theta_z)
-        translation: Final[Vec3] = Vec3(0.0, 0.0, self.offset_z)
+        rotation_matrix: Final[Mat4] = Mat4.RotationX(self.theta_x) * Mat4.RotationY(self.theta_y) * Mat4.RotationZ(self.theta_z)
+        translation: Final[Mat4] = Mat4.Translation(0.0, 0.0, self.offset_z)
+        transformation_matrix: Final[Mat4] = rotation_matrix * translation
+        
         light_position: Final[Vec3] = Vec3(self.lpos_x, self.lpos_y, self.lpos_z)
+        transformation_matrix_light_position: Final[Mat4] = Mat4.TranslationVec(light_position)
     
     	# set pipeline transform
-        self.pipeline.effect.vs.BindRotation(rotation_matrix)
-        self.pipeline.effect.vs.BindTranslation(translation)
+        self.pipeline.effect.vs.BindTransformation(transformation_matrix)
         self.pipeline.effect.ps.SetLightPosition(light_position)
 
         self.pipeline.Draw(self.it_list)
@@ -91,5 +93,5 @@ class ScenePhongPoint(Scene):
         # draw light indicator with different pipeline
         # don't call beginframe on this pipeline b/c wanna keep zbuffer contents
         # (don't like this assymetry but we'll live with it for now)
-        self.li_pipeline.effect.vs.BindTranslation(light_position)
+        self.li_pipeline.effect.vs.BindTransformation(transformation_matrix_light_position)
         self.li_pipeline.Draw(self.light_indicator)
