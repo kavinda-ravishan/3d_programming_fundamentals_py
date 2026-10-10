@@ -1,5 +1,5 @@
 from typing import Union, Generic
-from math import sin
+from math import sin, pow
 from Utils import VertexT, VertexArithmetic, Vec3, Vec2, Mat3, Color, Triangle
 from Engine import Surface
 
@@ -88,7 +88,6 @@ class PhongPointEffect(Generic[VertexT]):
             else:
                 return PhongPointEffect.VSOut(self.pos / other, self.n / other, self.world_pos / other)
 
-
     class VertexShader:
         def __init__(self):
             self.rotation: Mat3 = Mat3().Identity()
@@ -117,9 +116,14 @@ class PhongPointEffect(Generic[VertexT]):
             self.light_diffuse: Vec3 = Vec3(1.0, 1.0, 1.0)
             self.light_ambient: Vec3 = Vec3(0.1, 0.1, 0.1)
             self.material_color: Vec3 = Vec3(0.8, 0.85, 1.0)
+            
+            # diffuse
             self.linear_attenuation: float = 1.0
             self.quadradic_attenuation: float = 2.619
             self.constant_attenuation: float = 0.382
+            # specular
+            self.specular_power: float = 30.0
+            self.specular_intensity: float = 0.6
 
         def SetLightPosition(self, pos: Vec3):
             self.light_pos = pos
@@ -132,9 +136,18 @@ class PhongPointEffect(Generic[VertexT]):
             # calculate attenuation
             attenuation = 1.0 / (self.constant_attenuation + (self.linear_attenuation * dist) + (self.quadradic_attenuation * dist * dist))
             # calculate intensity based on angle of incidence and attenuation
-            d = self.light_diffuse * attenuation * max(0.0, input.n.GetNormalized().Dot(dir))
+            surf_norm = input.n.GetNormalized()
+            d = self.light_diffuse * attenuation * max(0.0, surf_norm.Dot(dir))
+            
+            # Specular Highlights
+            # reflected light vector
+            w = surf_norm * (v_to_l.Dot(surf_norm))
+            r = (w * 2.0) - v_to_l
+			# calculate specular intensity based on angle between viewing vector and reflection vector, narrow with power function
+            s = self.light_diffuse * self.specular_intensity * pow(max(0.0, -r.GetNormalized().Dot(input.world_pos.GetNormalized())), self.specular_power)
+
             # add diffuse+ambient, filter by material color, saturate and scale
-            c = self.material_color * (d + self.light_ambient).Saturate() * 255.0
+            c = self.material_color * (d + self.light_ambient + s).Saturate() * 255.0
 
             return Color.FromVec3(c)
 
@@ -142,7 +155,6 @@ class PhongPointEffect(Generic[VertexT]):
         self.vs: PhongPointEffect.VertexShader = PhongPointEffect.VertexShader()
         self.gs: DefaultGeometryShader[VertexT] = DefaultGeometryShader[VertexT]()
         self.ps: PhongPointEffect.PixelShader = PhongPointEffect.PixelShader()
-
 
 class GouraudPointEffect(Generic[VertexT]):
     class Vertex(VertexArithmetic):
