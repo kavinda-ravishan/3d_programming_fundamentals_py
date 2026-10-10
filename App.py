@@ -6,7 +6,7 @@ from Engine import Game
 # from SceneWaveVertexTexture import SceneWaveVertexTexture
 # from SceneGouraud import SceneGouraud
 # from ScenePoint import ScenePoint
-from ScenePhongPoint import ScenePhongPoint
+from SceneSpecularPhongPoint import SceneSpecularPhongPoint
 
 if '__main__' == __name__:
     frame_width = 320
@@ -18,7 +18,7 @@ if '__main__' == __name__:
         frame_height, 
         fps, 
         [
-            ScenePhongPoint(), 
+            SceneSpecularPhongPoint(), 
             # ScenePoint(), 
             # SceneGouraud(), 
             # SceneWaveVertexTexture(), 

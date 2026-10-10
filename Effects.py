@@ -19,38 +19,38 @@ class DefaultVertexShader(Generic[VertexT]):
             # transform vertices using matrix + vector
             return input.UpdatePos(input.pos * self.transformation, input)
 
-class PhongPointEffect(Generic[VertexT]):
+class SceneSpecularPhongPointEffect(Generic[VertexT]):
     class Vertex(VertexArithmetic):
         def __init__(self, pos: Vec4, n: Vec4):
             self.pos: Vec4 = pos
             self.n: Vec4 = n
 
-        def UpdatePos(self, pos: Vec4, src: "PhongPointEffect.Vertex"):
-            return PhongPointEffect.Vertex(pos, src.n)
+        def UpdatePos(self, pos: Vec4, src: "SceneSpecularPhongPointEffect.Vertex"):
+            return SceneSpecularPhongPointEffect.Vertex(pos, src.n)
 
-        def __add__(self, other: Union["PhongPointEffect.Vertex", float, int]):
-            if isinstance(other, PhongPointEffect.Vertex):
-                return PhongPointEffect.Vertex(self.pos + other.pos, self.n)
+        def __add__(self, other: Union["SceneSpecularPhongPointEffect.Vertex", float, int]):
+            if isinstance(other, SceneSpecularPhongPointEffect.Vertex):
+                return SceneSpecularPhongPointEffect.Vertex(self.pos + other.pos, self.n)
             else:
-                return PhongPointEffect.Vertex(self.pos + other, self.n)
+                return SceneSpecularPhongPointEffect.Vertex(self.pos + other, self.n)
 
-        def __sub__(self, other: Union["PhongPointEffect.Vertex", float, int]):
-            if isinstance(other, PhongPointEffect.Vertex):
-                return PhongPointEffect.Vertex(self.pos - other.pos, self.n)
+        def __sub__(self, other: Union["SceneSpecularPhongPointEffect.Vertex", float, int]):
+            if isinstance(other, SceneSpecularPhongPointEffect.Vertex):
+                return SceneSpecularPhongPointEffect.Vertex(self.pos - other.pos, self.n)
             else:
-                return PhongPointEffect.Vertex(self.pos - other, self.n)
+                return SceneSpecularPhongPointEffect.Vertex(self.pos - other, self.n)
 
-        def __mul__(self, other: Union["PhongPointEffect.Vertex", float, int]):
-            if isinstance(other, PhongPointEffect.Vertex):
-                return PhongPointEffect.Vertex(self.pos * other.pos, self.n)
+        def __mul__(self, other: Union["SceneSpecularPhongPointEffect.Vertex", float, int]):
+            if isinstance(other, SceneSpecularPhongPointEffect.Vertex):
+                return SceneSpecularPhongPointEffect.Vertex(self.pos * other.pos, self.n)
             else:
-                return PhongPointEffect.Vertex(self.pos * other, self.n)
+                return SceneSpecularPhongPointEffect.Vertex(self.pos * other, self.n)
 
-        def __truediv__(self, other:Union["PhongPointEffect.Vertex", float, int]):
-            if isinstance(other, PhongPointEffect.Vertex):
-                return PhongPointEffect.Vertex(self.pos / other.pos, self.n)
+        def __truediv__(self, other:Union["SceneSpecularPhongPointEffect.Vertex", float, int]):
+            if isinstance(other, SceneSpecularPhongPointEffect.Vertex):
+                return SceneSpecularPhongPointEffect.Vertex(self.pos / other.pos, self.n)
             else:
-                return PhongPointEffect.Vertex(self.pos / other, self.n)
+                return SceneSpecularPhongPointEffect.Vertex(self.pos / other, self.n)
 
     class VSOut(VertexArithmetic):
         def __init__(self, pos: Vec4, n: Vec4, world_pos: Vec3):
@@ -58,32 +58,32 @@ class PhongPointEffect(Generic[VertexT]):
             self.n: Vec4 = n
             self.world_pos: Vec3 = world_pos
 
-        def UpdatePos(self, pos: Vec4, src: "PhongPointEffect.VSOut"):
-            return PhongPointEffect.VSOut(pos, src.n, src.world_pos)
+        def UpdatePos(self, pos: Vec4, src: "SceneSpecularPhongPointEffect.VSOut"):
+            return SceneSpecularPhongPointEffect.VSOut(pos, src.n, src.world_pos)
 
-        def __add__(self, other: Union["PhongPointEffect.VSOut", float, int]):
-            if isinstance(other, PhongPointEffect.VSOut):
-                return PhongPointEffect.VSOut(self.pos + other.pos, self.n + other.n, self.world_pos + other.world_pos)
+        def __add__(self, other: Union["SceneSpecularPhongPointEffect.VSOut", float, int]):
+            if isinstance(other, SceneSpecularPhongPointEffect.VSOut):
+                return SceneSpecularPhongPointEffect.VSOut(self.pos + other.pos, self.n + other.n, self.world_pos + other.world_pos)
             else:
-                return PhongPointEffect.VSOut(self.pos + other, self.n + other, self.world_pos + other)
+                return SceneSpecularPhongPointEffect.VSOut(self.pos + other, self.n + other, self.world_pos + other)
 
-        def __sub__(self, other: Union["PhongPointEffect.VSOut", float, int]):
-            if isinstance(other, PhongPointEffect.VSOut):
-                return PhongPointEffect.VSOut(self.pos - other.pos, self.n - other.n, self.world_pos - other.world_pos)
+        def __sub__(self, other: Union["SceneSpecularPhongPointEffect.VSOut", float, int]):
+            if isinstance(other, SceneSpecularPhongPointEffect.VSOut):
+                return SceneSpecularPhongPointEffect.VSOut(self.pos - other.pos, self.n - other.n, self.world_pos - other.world_pos)
             else:
-                return PhongPointEffect.VSOut(self.pos - other, self.n - other, self.world_pos - other)
+                return SceneSpecularPhongPointEffect.VSOut(self.pos - other, self.n - other, self.world_pos - other)
 
-        def __mul__(self, other: Union["PhongPointEffect.VSOut", float, int]):
-            if isinstance(other, PhongPointEffect.VSOut):
-                return PhongPointEffect.VSOut(self.pos * other.pos, self.n * other.n, self.world_pos * other.world_pos)
+        def __mul__(self, other: Union["SceneSpecularPhongPointEffect.VSOut", float, int]):
+            if isinstance(other, SceneSpecularPhongPointEffect.VSOut):
+                return SceneSpecularPhongPointEffect.VSOut(self.pos * other.pos, self.n * other.n, self.world_pos * other.world_pos)
             else:
-                return PhongPointEffect.VSOut(self.pos * other, self.n * other, self.world_pos * other)
+                return SceneSpecularPhongPointEffect.VSOut(self.pos * other, self.n * other, self.world_pos * other)
 
-        def __truediv__(self, other:Union["PhongPointEffect.VSOut", float, int]):
-            if isinstance(other, PhongPointEffect.VSOut):
-                return PhongPointEffect.VSOut(self.pos / other.pos, self.n / other.n, self.world_pos / other.world_pos)
+        def __truediv__(self, other:Union["SceneSpecularPhongPointEffect.VSOut", float, int]):
+            if isinstance(other, SceneSpecularPhongPointEffect.VSOut):
+                return SceneSpecularPhongPointEffect.VSOut(self.pos / other.pos, self.n / other.n, self.world_pos / other.world_pos)
             else:
-                return PhongPointEffect.VSOut(self.pos / other, self.n / other, self.world_pos / other)
+                return SceneSpecularPhongPointEffect.VSOut(self.pos / other, self.n / other, self.world_pos / other)
 
     class VertexShader:
         def __init__(self):
@@ -95,11 +95,11 @@ class PhongPointEffect(Generic[VertexT]):
         def SetLightPosition(self, pos: Vec3):
             self.light_pos = pos
 
-        def __call__(self, input: PhongPointEffect.Vertex) -> PhongPointEffect.VSOut:
+        def __call__(self, input: SceneSpecularPhongPointEffect.Vertex) -> SceneSpecularPhongPointEffect.VSOut:
             pos = input.pos * self.transformation
             n = Vec4(input.n.x, input.n.y, input.n.z, 0.0) * self.transformation
 
-            return PhongPointEffect.VSOut(pos, n, pos.ToVec3())
+            return SceneSpecularPhongPointEffect.VSOut(pos, n, pos.ToVec3())
 
     class PixelShader:
         def __init__(self):
@@ -119,7 +119,7 @@ class PhongPointEffect(Generic[VertexT]):
         def SetLightPosition(self, pos: Vec3):
             self.light_pos = pos
 
-        def __call__(self, input: "PhongPointEffect.VSOut") -> Color:
+        def __call__(self, input: "SceneSpecularPhongPointEffect.VSOut") -> Color:
             # vertex to light data
             v_to_l = self.light_pos - input.world_pos
             dist = v_to_l.Len()
@@ -143,9 +143,9 @@ class PhongPointEffect(Generic[VertexT]):
             return Color.FromVec3(c)
 
     def __init__(self):
-        self.vs: PhongPointEffect.VertexShader = PhongPointEffect.VertexShader()
+        self.vs: SceneSpecularPhongPointEffect.VertexShader = SceneSpecularPhongPointEffect.VertexShader()
         self.gs: DefaultGeometryShader[VertexT] = DefaultGeometryShader[VertexT]()
-        self.ps: PhongPointEffect.PixelShader = PhongPointEffect.PixelShader()
+        self.ps: SceneSpecularPhongPointEffect.PixelShader = SceneSpecularPhongPointEffect.PixelShader()
 
 # class GouraudPointEffect(Generic[VertexT]):
 #     class Vertex(VertexArithmetic):

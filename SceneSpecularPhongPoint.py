@@ -4,13 +4,13 @@ from Utils import Vec2, Vec3, Mat4, WrapAngle
 from Engine import Pipeline, Scene
 from Models import Sphere
 from Models import Cube
-from Effects import PhongPointEffect, SolidEffect
+from Effects import SceneSpecularPhongPointEffect, SolidEffect
 
-class ScenePhongPoint(Scene):
+class SceneSpecularPhongPoint(Scene):
     def __init__(self):
         super().__init__()
         self.it_list = Cube.GetPlainIndependentFaces(
-            lambda vertices, normals: [PhongPointEffect.Vertex(position.ToVec4(), normals[i].ToVec4()) for i, position in enumerate(vertices)]
+            lambda vertices, normals: [SceneSpecularPhongPointEffect.Vertex(position.ToVec4(), normals[i].ToVec4()) for i, position in enumerate(vertices)]
         )
         self.light_indicator = Sphere.GetPlain(
             lambda vertices, _: [SolidEffect.Vertex(position.ToVec4()) for position in vertices], 0.05
@@ -28,8 +28,8 @@ class ScenePhongPoint(Scene):
 
     def SetupComplete(self):
         if not hasattr(self, 'gfx'): raise Exception("Graphics not found")
-        effect = PhongPointEffect[PhongPointEffect.Vertex]()
-        self.pipeline = Pipeline[PhongPointEffect.Vertex](self.gfx, effect)
+        effect = SceneSpecularPhongPointEffect[SceneSpecularPhongPointEffect.Vertex]()
+        self.pipeline = Pipeline[SceneSpecularPhongPointEffect.Vertex](self.gfx, effect)
         
         effect = SolidEffect[SolidEffect.Vertex]()
         self.li_pipeline = Pipeline[SolidEffect.Vertex](self.gfx, effect, self.pipeline.GetZBuffer())
