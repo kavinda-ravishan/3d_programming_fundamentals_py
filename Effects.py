@@ -1,6 +1,5 @@
 from typing import Union, Generic
-# from math import sin, pow
-from math import pow
+from math import sin, pow
 from Utils import VertexT, VertexArithmetic, Vec3, Vec2, Color, Triangle, Vec4, Mat4
 from Engine import Surface
 
@@ -10,7 +9,7 @@ class DefaultGeometryShader(Generic[VertexT]):
 
 class DefaultVertexShader(Generic[VertexT]):
     def __init__(self):
-        self.transformation : Mat4 = Mat4()
+        self.transformation : Mat4 = Mat4().Identity()
 
     def BindTransformation(self, transformation: Mat4):
         self.transformation = transformation
@@ -147,622 +146,601 @@ class SceneSpecularPhongPointEffect(Generic[VertexT]):
         self.gs: DefaultGeometryShader[VertexT] = DefaultGeometryShader[VertexT]()
         self.ps: SceneSpecularPhongPointEffect.PixelShader = SceneSpecularPhongPointEffect.PixelShader()
 
-# class GouraudPointEffect(Generic[VertexT]):
-#     class Vertex(VertexArithmetic):
-#         def __init__(self, pos: Vec3, n: Vec3):
-#             self.pos: Vec3 = pos
-#             self.n: Vec3 = n
-
-#         def UpdatePos(self, pos: Vec3, src: "GouraudPointEffect.Vertex"):
-#             return GouraudPointEffect.Vertex(pos, src.n)
-
-#         def __add__(self, other: Union["GouraudPointEffect.Vertex", float, int]):
-#             if isinstance(other, GouraudPointEffect.Vertex):
-#                 return GouraudPointEffect.Vertex(self.pos + other.pos, self.n)
-#             else:
-#                 return GouraudPointEffect.Vertex(self.pos + other, self.n)
-
-#         def __sub__(self, other: Union["GouraudPointEffect.Vertex", float, int]):
-#             if isinstance(other, GouraudPointEffect.Vertex):
-#                 return GouraudPointEffect.Vertex(self.pos - other.pos, self.n)
-#             else:
-#                 return GouraudPointEffect.Vertex(self.pos - other, self.n)
-
-#         def __mul__(self, other: Union["GouraudPointEffect.Vertex", float, int]):
-#             if isinstance(other, GouraudPointEffect.Vertex):
-#                 return GouraudPointEffect.Vertex(self.pos * other.pos, self.n)
-#             else:
-#                 return GouraudPointEffect.Vertex(self.pos * other, self.n)
-
-#         def __truediv__(self, other:Union["GouraudPointEffect.Vertex", float, int]):
-#             if isinstance(other, GouraudPointEffect.Vertex):
-#                 return GouraudPointEffect.Vertex(self.pos / other.pos, self.n)
-#             else:
-#                 return GouraudPointEffect.Vertex(self.pos / other, self.n)
-
-#     class VSOut(VertexArithmetic):
-#         def __init__(self, pos: Vec3, color: Vec3):
-#             self.pos: Vec3 = pos
-#             self.color: Vec3 = color
-
-#         def UpdatePos(self, pos: Vec3, src: "GouraudPointEffect.VSOut"):
-#             return GouraudPointEffect.VSOut(pos, src.color)
-
-#         def __add__(self, other: Union["GouraudPointEffect.VSOut", float, int]):
-#             if isinstance(other, GouraudPointEffect.VSOut):
-#                 return GouraudPointEffect.VSOut(self.pos + other.pos, self.color + other.color)
-#             else:
-#                 return GouraudPointEffect.VSOut(self.pos + other, self.color + other)
-
-#         def __sub__(self, other: Union["GouraudPointEffect.VSOut", float, int]):
-#             if isinstance(other, GouraudPointEffect.VSOut):
-#                 return GouraudPointEffect.VSOut(self.pos - other.pos, self.color - other.color)
-#             else:
-#                 return GouraudPointEffect.VSOut(self.pos - other, self.color - other)
-
-#         def __mul__(self, other: Union["GouraudPointEffect.VSOut", float, int]):
-#             if isinstance(other, GouraudPointEffect.VSOut):
-#                 return GouraudPointEffect.VSOut(self.pos * other.pos, self.color * other.color)
-#             else:
-#                 return GouraudPointEffect.VSOut(self.pos * other, self.color * other)
-
-#         def __truediv__(self, other:Union["GouraudPointEffect.VSOut", float, int]):
-#             if isinstance(other, GouraudPointEffect.VSOut):
-#                 return GouraudPointEffect.VSOut(self.pos / other.pos, self.color / other.color)
-#             else:
-#                 return GouraudPointEffect.VSOut(self.pos / other, self.color / other)
-
-#     class VertexShader:
-#         def __init__(self):
-#             self.rotation: Mat3 = Mat3().Identity()
-#             self.translation : Vec3 = Vec3()
-
-#             self.light_pos: Vec3 = Vec3(0.0, 0.0, 0.5)
-#             self.light_diffuse: Vec3 = Vec3(1.0, 1.0, 1.0)
-#             self.light_ambient: Vec3 = Vec3(0.1, 0.1, 0.1)
-#             self.material_color: Vec3 = Vec3(0.8, 0.85, 1.0)
-#             self.linear_attenuation: float = 1.0
-#             self.quadradic_attenuation: float = 2.619
-#             self.constant_attenuation: float = 0.382
-
-#         def BindRotation(self, rotation: Mat3):
-#             self.rotation = rotation
-
-#         def BindTranslation(self, translation: Vec3):
-#             self.translation = translation
-
-#         def SetLightPosition(self, pos: Vec3):
-#             self.light_pos = pos
-
-#         def __call__(self, input: GouraudPointEffect.Vertex) -> GouraudPointEffect.VSOut:
-#             # transform mech vertex position before lighting calc
-#             pos = (input.pos * self.rotation) + self.translation
-#             # vertex to light data
-#             v_to_l = self.light_pos - pos
-#             dist = v_to_l.Len()
-#             dir = v_to_l / dist
-#             # calculate attenuation
-#             attenuation = 1.0 / (self.constant_attenuation + (self.linear_attenuation * dist) + (self.quadradic_attenuation * dist * dist))
-#             # calculate intensity based on angle of incidence and attenuation
-#             d = self.light_diffuse * attenuation * max(0.0, (input.n * self.rotation).Dot(dir))
-#             # add diffuse+ambient, filter by material color, saturate and scale
-#             c = self.material_color * (d + self.light_ambient).Saturate() * 255.0
-
-#             # transform vertices using matrix + vector
-#             return GouraudPointEffect.VSOut(pos, c)
-
-#     class PixelShader:
-#         def __init__(self): ...
-
-#         def __call__(self, input: "GouraudPointEffect.VSOut") -> Color:
-#             return Color.FromVec3(input.color)
-
-#     def __init__(self):
-#         self.vs: GouraudPointEffect.VertexShader = GouraudPointEffect.VertexShader()
-#         self.gs: DefaultGeometryShader[VertexT] = DefaultGeometryShader[VertexT]()
-#         self.ps: GouraudPointEffect.PixelShader = GouraudPointEffect.PixelShader()
-
-# class GouraudEffect(Generic[VertexT]):
-#     class Vertex(VertexArithmetic):
-#         def __init__(self, pos: Vec3, n: Vec3):
-#             self.pos: Vec3 = pos
-#             self.n: Vec3 = n
-
-#         def UpdatePos(self, pos: Vec3, src: "GouraudEffect.Vertex"):
-#             return GouraudEffect.Vertex(pos, src.n)
-
-#         def __add__(self, other: Union["GouraudEffect.Vertex", float, int]):
-#             if isinstance(other, GouraudEffect.Vertex):
-#                 return GouraudEffect.Vertex(self.pos + other.pos, self.n)
-#             else:
-#                 return GouraudEffect.Vertex(self.pos + other, self.n)
-
-#         def __sub__(self, other: Union["GouraudEffect.Vertex", float, int]):
-#             if isinstance(other, GouraudEffect.Vertex):
-#                 return GouraudEffect.Vertex(self.pos - other.pos, self.n)
-#             else:
-#                 return GouraudEffect.Vertex(self.pos - other, self.n)
-
-#         def __mul__(self, other: Union["GouraudEffect.Vertex", float, int]):
-#             if isinstance(other, GouraudEffect.Vertex):
-#                 return GouraudEffect.Vertex(self.pos * other.pos, self.n)
-#             else:
-#                 return GouraudEffect.Vertex(self.pos * other, self.n)
-
-#         def __truediv__(self, other:Union["GouraudEffect.Vertex", float, int]):
-#             if isinstance(other, GouraudEffect.Vertex):
-#                 return GouraudEffect.Vertex(self.pos / other.pos, self.n)
-#             else:
-#                 return GouraudEffect.Vertex(self.pos / other, self.n)
-
-#     class VSOut(VertexArithmetic):
-#         def __init__(self, pos: Vec3, color: Vec3):
-#             self.pos: Vec3 = pos
-#             self.color: Vec3 = color
-
-#         def UpdatePos(self, pos: Vec3, src: "GouraudEffect.VSOut"):
-#             return GouraudEffect.VSOut(pos, src.color)
-
-#         def __add__(self, other: Union["GouraudEffect.VSOut", float, int]):
-#             if isinstance(other, GouraudEffect.VSOut):
-#                 return GouraudEffect.VSOut(self.pos + other.pos, self.color + other.color)
-#             else:
-#                 return GouraudEffect.VSOut(self.pos + other, self.color + other)
-
-#         def __sub__(self, other: Union["GouraudEffect.VSOut", float, int]):
-#             if isinstance(other, GouraudEffect.VSOut):
-#                 return GouraudEffect.VSOut(self.pos - other.pos, self.color - other.color)
-#             else:
-#                 return GouraudEffect.VSOut(self.pos - other, self.color - other)
-
-#         def __mul__(self, other: Union["GouraudEffect.VSOut", float, int]):
-#             if isinstance(other, GouraudEffect.VSOut):
-#                 return GouraudEffect.VSOut(self.pos * other.pos, self.color * other.color)
-#             else:
-#                 return GouraudEffect.VSOut(self.pos * other, self.color * other)
-
-#         def __truediv__(self, other:Union["GouraudEffect.VSOut", float, int]):
-#             if isinstance(other, GouraudEffect.VSOut):
-#                 return GouraudEffect.VSOut(self.pos / other.pos, self.color / other.color)
-#             else:
-#                 return GouraudEffect.VSOut(self.pos / other, self.color / other)
-
-#     class VertexShader:
-#         def __init__(self):
-#             self.rotation: Mat3 = Mat3().Identity()
-#             self.translation : Vec3 = Vec3()
-
-#             self.dir: Vec3 = Vec3(0.0, 0.0, 1.0)
-#             # this is the intensity if direct light from source
-# 		    # color light so need values per color component
-#             self.diffuse: Vec3 = Vec3(1.0, 1.0, 1.0)
-#             # this is intensity of indirect light that bounces off other obj in scene
-# 		    # color light so need values per color component
-#             self.ambient: Vec3 = Vec3(0.1, 0.1, 0.1)
-#             # color of material (how much light of each color is reflected)
-#             self.color: Vec3 = Vec3(0.8, 0.85, 1.0)
-
-#         def BindRotation(self, rotation: Mat3):
-#             self.rotation = rotation
-
-#         def BindTranslation(self, translation: Vec3):
-#             self.translation = translation
-
-#         def SetLightDirection(self, dl: Vec3):
-#             self.dir = dl
-
-#         def __call__(self, input: GouraudEffect.Vertex) -> GouraudEffect.VSOut:
-
-#             # calculate intensity based on angle of incidence
-#             d = self.diffuse * max(0.0, -(input.n * self.rotation).Dot(self.dir))
-# 			# add diffuse+ambient, filter by material color, saturate and scale
-#             c = (self.color * (d + self.ambient)).Saturate() * 255.0
-
-#             pos = (input.pos * self.rotation) + self.translation
-
-#             # transform vertices using matrix + vector
-#             return GouraudEffect.VSOut(pos, c)
-
-#     class GeometryShader:
-#         def __init__(self) -> None:
-#             self.triangle_colors: list[Color] = [
-#                 Color.Gray,
-#                 Color.LightGray,
-#                 Color.Red,
-#                 Color.Green,
-#                 Color.Blue,
-#                 Color.Yellow,
-#                 Color.Cyan,
-#                 Color.Magenta,
-#                 Color.Orange,
-#                 Color.Purple,
-#                 Color.Brown,
-#                 Color.Pink,
-#                 Color.Gold,
-#                 Color.Silver,
-#                 Color.Teal,
-#                 Color.Olive,
-#                 Color.Maroon,
-#                 Color.Navy,
-#                 Color.Lime,
-#                 Color.Aqua,
-#                 Color.Fuchsia,
-#                 Color.Indigo,
-#                 Color.Violet,
-#                 Color.Beige,
-#                 Color.Chocolate,
-#                 Color.Coral,
-#                 Color.Turquoise,
-#                 Color.SkyBlue,
-#             ]
-
-#         def __call__(self, in0: GouraudEffect.VSOut, in1: GouraudEffect.VSOut, in2: GouraudEffect.VSOut, triangle_index: int):
-
-#             cid = triangle_index%len(self.triangle_colors)
-
-#             out0 = GouraudEffect.VSOut(in0.pos, self.triangle_colors[cid].ToVec3())
-#             out1 = GouraudEffect.VSOut(in1.pos, self.triangle_colors[cid].ToVec3())
-#             out2 = GouraudEffect.VSOut(in2.pos, self.triangle_colors[cid].ToVec3())
-
-#             return Triangle(out0, out1, out2)
-
-#     class PixelShader:
-#         def __init__(self): ...
-
-#         def __call__(self, input: "GouraudEffect.VSOut") -> Color:
-#             return Color.FromVec3(input.color)
-
-#     def __init__(self):
-#         self.vs: GouraudEffect.VertexShader = GouraudEffect.VertexShader()
-#         # self.gs: GouraudEffect.GeometryShader = GouraudEffect.GeometryShader()
-#         self.gs: DefaultGeometryShader[VertexT] = DefaultGeometryShader[VertexT]()
-#         self.ps: GouraudEffect.PixelShader = GouraudEffect.PixelShader()
-
-# class WaveVertexTextureEffec(Generic[VertexT]):
-
-#     class Vertex(VertexArithmetic):
-#         def __init__(self, pos: Vec3, t: Vec2):
-#             self.pos: Vec3 = pos
-#             self.t: Vec2 = t
-
-#         def UpdatePos(self, pos: Vec3, src: "WaveVertexTextureEffec.Vertex"):
-#             return WaveVertexTextureEffec.Vertex(pos, src.t)
-
-#         def __add__(self, other: Union["WaveVertexTextureEffec.Vertex", float, int]):
-#             if isinstance(other, WaveVertexTextureEffec.Vertex):
-#                 return WaveVertexTextureEffec.Vertex(self.pos + other.pos, self.t)
-#             else:
-#                 return WaveVertexTextureEffec.Vertex(self.pos + other, self.t)
-
-#         def __sub__(self, other: Union["WaveVertexTextureEffec.Vertex", float, int]):
-#             if isinstance(other, WaveVertexTextureEffec.Vertex):
-#                 return WaveVertexTextureEffec.Vertex(self.pos - other.pos, self.t)
-#             else:
-#                 return WaveVertexTextureEffec.Vertex(self.pos - other, self.t)
-
-#         def __mul__(self, other: Union["WaveVertexTextureEffec.Vertex", float, int]):
-#             if isinstance(other, WaveVertexTextureEffec.Vertex):
-#                 return WaveVertexTextureEffec.Vertex(self.pos * other.pos, self.t)
-#             else:
-#                 return WaveVertexTextureEffec.Vertex(self.pos * other, self.t)
-
-#         def __truediv__(self, other:Union["WaveVertexTextureEffec.Vertex", float, int]):
-#             if isinstance(other, WaveVertexTextureEffec.Vertex):
-#                 return WaveVertexTextureEffec.Vertex(self.pos / other.pos, self.t)
-#             else:
-#                 return WaveVertexTextureEffec.Vertex(self.pos / other, self.t)
-
-#     class GSOut(VertexArithmetic):
-#         def __init__(self, pos: Vec3, t: Vec2, l: float):
-#             self.pos: Vec3 = pos
-#             self.l: float = l
-#             self.t: Vec2 = t
-
-#         def UpdatePos(self, pos: Vec3, src: "WaveVertexTextureEffec.GSOut"):
-#             return WaveVertexTextureEffec.GSOut(pos, src.t, src.l)
-
-#         def __add__(self, other: Union["WaveVertexTextureEffec.GSOut", float, int]):
-#             if isinstance(other, WaveVertexTextureEffec.GSOut):
-#                 return WaveVertexTextureEffec.GSOut(self.pos + other.pos, self.t + other.t, self.l)
-#             else:
-#                 return WaveVertexTextureEffec.GSOut(self.pos + other, self.t + other, self.l)
-
-#         def __sub__(self, other: Union["WaveVertexTextureEffec.GSOut", float, int]):
-#             if isinstance(other, WaveVertexTextureEffec.GSOut):
-#                 return WaveVertexTextureEffec.GSOut(self.pos - other.pos, self.t - other.t, self.l)
-#             else:
-#                 return WaveVertexTextureEffec.GSOut(self.pos - other, self.t - other, self.l)
-
-#         def __mul__(self, other: Union["WaveVertexTextureEffec.GSOut", float, int]):
-#             if isinstance(other, WaveVertexTextureEffec.GSOut):
-#                 return WaveVertexTextureEffec.GSOut(self.pos * other.pos, self.t * other.t, self.l)
-#             else:
-#                 return WaveVertexTextureEffec.GSOut(self.pos * other, self.t * other, self.l)
-
-#         def __truediv__(self, other:Union["WaveVertexTextureEffec.GSOut", float, int]):
-#             if isinstance(other, WaveVertexTextureEffec.GSOut):
-#                 return WaveVertexTextureEffec.GSOut(self.pos / other.pos, self.t / other.t, self.l)
-#             else:
-#                 return WaveVertexTextureEffec.GSOut(self.pos / other, self.t / other, self.l)
-
-#     class VertexShader:
-#         def __init__(self):
-#             self.rotation: Mat3 = Mat3().Identity()
-#             self.translation : Vec3 = Vec3()
-
-#             self.time: float = 0.0
-#             self.freq_wave: float = 10.0
-#             self.freq_scroll: float = 5.0
-#             self.amplitude: float = 0.05
-
-#         def BindRotation(self, rotation: Mat3):
-#             self.rotation = rotation
-
-#         def BindTranslation(self, translation: Vec3):
-#             self.translation = translation
-
-#         def SetTime(self, t: float):
-#             self.time = t
-
-#         def __call__(self, input: WaveVertexTextureEffec.Vertex) -> WaveVertexTextureEffec.Vertex:
-#                 pos = (input.pos * self.rotation) + self.translation
-#                 pos.y += self.amplitude * sin(self.time * self.freq_scroll + pos.x * self.freq_wave)
-#                 return input.UpdatePos(pos, input)
-
-#     class GeometryShader:
-#         def __init__(self) -> None:
-#             self.dir: Vec3 = Vec3(0.0, 0.0, 1.0)
-#             self.diffuse: float = 1.0
-#             self.ambient: float = 0.15
-
-#         def SetLightDirection(self, dl: Vec3):
-#             self.dir = dl
-
-#         def __call__(self, in0: WaveVertexTextureEffec.Vertex, in1: WaveVertexTextureEffec.Vertex, in2: WaveVertexTextureEffec.Vertex, triangle_index: int):
-
-#             n = (in1.pos - in0.pos).Cross(in2.pos - in0.pos).GetNormalized()
-#             d = self.diffuse * max(0.0, -(n.Dot(self.dir)))
-#             l = min(1.0, d + self.ambient)
-
-#             out0 = WaveVertexTextureEffec.GSOut(in0.pos, in0.t, l)
-#             out1 = WaveVertexTextureEffec.GSOut(in1.pos, in1.t, l)
-#             out2 = WaveVertexTextureEffec.GSOut(in2.pos, in2.t, l)
-
-#             return Triangle(out0, out1, out2)
-
-#     class PixelShader:
-#         def __init__(self):
-#             self.texture: Surface = Surface(0, 0)
-#             self.tex_width: float = 0.0
-#             self.tex_height: float = 0.0
-#             self.tex_xclamp: float = 0.0
-#             self.tex_yclamp: float = 0.0
-
-#         def __call__(self, input: "WaveVertexTextureEffec.GSOut") -> Color:
-#             color = self.texture.GetPixel(
-#                 int(max(0, min(input.t.x * self.tex_width + 0.5, self.tex_xclamp))),
-#                 int(max(0, min(input.t.y * self.tex_height + 0.5, self.tex_yclamp)))
-#             )
-
-#             return Color(int(color.r * input.l), int(color.g * input.l), int(color.b * input.l))
-
-#         def BindTexture(self, filename: str):
-#             self.texture = Surface.FromFile(filename)
-#             self.tex_width = float(self.texture.GetWidth())
-#             self.tex_height = float(self.texture.GetHeight())
-#             self.tex_xclamp = self.tex_width - 1.0
-#             self.tex_yclamp = self.tex_height - 1.0
-
-#     def __init__(self):
-#         self.vs: WaveVertexTextureEffec.VertexShader = WaveVertexTextureEffec.VertexShader()
-#         self.gs: WaveVertexTextureEffec.GeometryShader = WaveVertexTextureEffec.GeometryShader()
-#         self.ps: WaveVertexTextureEffec.PixelShader = WaveVertexTextureEffec.PixelShader()
-
-# class VertexFlatEffect(Generic[VertexT]):
-#     class Vertex(VertexArithmetic):
-#         def __init__(self, pos: Vec3, n: Vec3):
-#             self.pos: Vec3 = pos
-#             self.n: Vec3 = n
-
-#         def UpdatePos(self, pos: Vec3, src: "VertexFlatEffect.Vertex"):
-#             return VertexFlatEffect.Vertex(pos, src.n)
-
-#         def __add__(self, other: Union["VertexFlatEffect.Vertex", float, int]):
-#             if isinstance(other, VertexFlatEffect.Vertex):
-#                 return VertexFlatEffect.Vertex(self.pos + other.pos, self.n)
-#             else:
-#                 return VertexFlatEffect.Vertex(self.pos + other, self.n)
-
-#         def __sub__(self, other: Union["VertexFlatEffect.Vertex", float, int]):
-#             if isinstance(other, VertexFlatEffect.Vertex):
-#                 return VertexFlatEffect.Vertex(self.pos - other.pos, self.n)
-#             else:
-#                 return VertexFlatEffect.Vertex(self.pos - other, self.n)
-
-#         def __mul__(self, other: Union["VertexFlatEffect.Vertex", float, int]):
-#             if isinstance(other, VertexFlatEffect.Vertex):
-#                 return VertexFlatEffect.Vertex(self.pos * other.pos, self.n)
-#             else:
-#                 return VertexFlatEffect.Vertex(self.pos * other, self.n)
-
-#         def __truediv__(self, other:Union["VertexFlatEffect.Vertex", float, int]):
-#             if isinstance(other, VertexFlatEffect.Vertex):
-#                 return VertexFlatEffect.Vertex(self.pos / other.pos, self.n)
-#             else:
-#                 return VertexFlatEffect.Vertex(self.pos / other, self.n)
-
-#     class VSOut(VertexArithmetic):
-#         def __init__(self, pos: Vec3, color: Vec3):
-#             self.pos: Vec3 = pos
-#             self.color: Vec3 = color
-
-#         def UpdatePos(self, pos: Vec3, src: "VertexFlatEffect.VSOut"):
-#             return VertexFlatEffect.VSOut(pos, src.color)
-
-#         def __add__(self, other: Union["VertexFlatEffect.VSOut", float, int]):
-#             if isinstance(other, VertexFlatEffect.VSOut):
-#                 return VertexFlatEffect.VSOut(self.pos + other.pos, self.color)
-#             else:
-#                 return VertexFlatEffect.VSOut(self.pos + other, self.color)
-
-#         def __sub__(self, other: Union["VertexFlatEffect.VSOut", float, int]):
-#             if isinstance(other, VertexFlatEffect.VSOut):
-#                 return VertexFlatEffect.VSOut(self.pos - other.pos, self.color)
-#             else:
-#                 return VertexFlatEffect.VSOut(self.pos - other, self.color)
-
-#         def __mul__(self, other: Union["VertexFlatEffect.VSOut", float, int]):
-#             if isinstance(other, VertexFlatEffect.VSOut):
-#                 return VertexFlatEffect.VSOut(self.pos * other.pos, self.color)
-#             else:
-#                 return VertexFlatEffect.VSOut(self.pos * other, self.color)
-
-#         def __truediv__(self, other:Union["VertexFlatEffect.VSOut", float, int]):
-#             if isinstance(other, VertexFlatEffect.VSOut):
-#                 return VertexFlatEffect.VSOut(self.pos / other.pos, self.color)
-#             else:
-#                 return VertexFlatEffect.VSOut(self.pos / other, self.color)
-
-#     class VertexShader:
-#         def __init__(self):
-#             self.rotation: Mat3 = Mat3().Identity()
-#             self.translation : Vec3 = Vec3()
-
-#             self.dir: Vec3 = Vec3(0.0, 0.0, 1.0)
-#             # this is the intensity if direct light from source
-# 		    # color light so need values per color component
-#             self.diffuse: Vec3 = Vec3(1.0, 1.0, 1.0)
-#             # this is intensity of indirect light that bounces off other obj in scene
-# 		    # color light so need values per color component
-#             self.ambient: Vec3 = Vec3(0.1, 0.1, 0.1)
-#             # color of material (how much light of each color is reflected)
-#             self.color: Vec3 = Vec3(0.8, 0.85, 1.0)
-
-#         def BindRotation(self, rotation: Mat3):
-#             self.rotation = rotation
-
-#         def BindTranslation(self, translation: Vec3):
-#             self.translation = translation
-
-#         def SetLightDirection(self, dl: Vec3):
-#             self.dir = dl
-
-#         def __call__(self, input: VertexFlatEffect.Vertex) -> VertexFlatEffect.VSOut:
-
-#             # calculate intensity based on angle of incidence
-#             d = self.diffuse * max(0.0, -(input.n * self.rotation).Dot(self.dir))
-# 			# add diffuse+ambient, filter by material color, saturate and scale
-#             c = (self.color * (d + self.ambient)).Saturate() * 255.0
-
-#             pos = (input.pos * self.rotation) + self.translation
-
-#             # transform vertices using matrix + vector
-#             return VertexFlatEffect.VSOut(pos, c)
-
-#     class PixelShader:
-#         def __init__(self): ...
-
-#         def __call__(self, input: "VertexFlatEffect.VSOut") -> Color:
-#             return Color.FromVec3(input.color)
-
-#     def __init__(self):
-#         self.ps: VertexFlatEffect.PixelShader = VertexFlatEffect.PixelShader()
-#         self.vs: VertexFlatEffect.VertexShader = VertexFlatEffect.VertexShader()
-#         self.gs: DefaultGeometryShader[VertexT] = DefaultGeometryShader[VertexT]()
-
-# class VertexPositionColorEffect(Generic[VertexT]):
-#     class Vertex(VertexArithmetic):
-#         def __init__(self, pos: Vec3):
-#             self.pos: Vec3 = pos
-
-#         def UpdatePos(self, pos: Vec3, src: "VertexPositionColorEffect.Vertex"):
-#             return VertexPositionColorEffect.Vertex(pos)
-
-#         def __add__(self, other: Union["VertexPositionColorEffect.Vertex", float, int]):
-#             if isinstance(other, VertexPositionColorEffect.Vertex):
-#                 return VertexPositionColorEffect.Vertex(self.pos + other.pos)
-#             else:
-#                 return VertexPositionColorEffect.Vertex(self.pos + other)
-
-#         def __sub__(self, other: Union["VertexPositionColorEffect.Vertex", float, int]):
-#             if isinstance(other, VertexPositionColorEffect.Vertex):
-#                 return VertexPositionColorEffect.Vertex(self.pos - other.pos)
-#             else:
-#                 return VertexPositionColorEffect.Vertex(self.pos - other)
-
-#         def __mul__(self, other: Union["VertexPositionColorEffect.Vertex", float, int]):
-#             if isinstance(other, VertexPositionColorEffect.Vertex):
-#                 return VertexPositionColorEffect.Vertex(self.pos * other.pos)
-#             else:
-#                 return VertexPositionColorEffect.Vertex(self.pos * other)
-
-#         def __truediv__(self, other:Union["VertexPositionColorEffect.Vertex", float, int]):
-#             if isinstance(other, VertexPositionColorEffect.Vertex):
-#                 return VertexPositionColorEffect.Vertex(self.pos / other.pos)
-#             else:
-#                 return VertexPositionColorEffect.Vertex(self.pos / other)
-
-#     class VSOut(VertexArithmetic):
-#         def __init__(self, pos: Vec3, color: Vec3):
-#             self.pos: Vec3 = pos
-#             self.color: Vec3 = color
-
-#         def UpdatePos(self, pos: Vec3, src: "VertexPositionColorEffect.VSOut"):
-#             return VertexPositionColorEffect.VSOut(pos, src.color)
-
-#         def __add__(self, other: Union["VertexPositionColorEffect.VSOut", float, int]):
-#             if isinstance(other, VertexPositionColorEffect.VSOut):
-#                 return VertexPositionColorEffect.VSOut(self.pos + other.pos, self.color + other.color)
-#             else:
-#                 return VertexPositionColorEffect.VSOut(self.pos + other, self.color + other)
-
-#         def __sub__(self, other: Union["VertexPositionColorEffect.VSOut", float, int]):
-#             if isinstance(other, VertexPositionColorEffect.VSOut):
-#                 return VertexPositionColorEffect.VSOut(self.pos - other.pos, self.color - other.color)
-#             else:
-#                 return VertexPositionColorEffect.VSOut(self.pos - other, self.color - other)
-
-#         def __mul__(self, other: Union["VertexPositionColorEffect.VSOut", float, int]):
-#             if isinstance(other, VertexPositionColorEffect.VSOut):
-#                 return VertexPositionColorEffect.VSOut(self.pos * other.pos, self.color * other.color)
-#             else:
-#                 return VertexPositionColorEffect.VSOut(self.pos * other, self.color * other)
-
-#         def __truediv__(self, other:Union["VertexPositionColorEffect.VSOut", float, int]):
-#             if isinstance(other, VertexPositionColorEffect.VSOut):
-#                 return VertexPositionColorEffect.VSOut(self.pos / other.pos, self.color / other.color)
-#             else:
-#                 return VertexPositionColorEffect.VSOut(self.pos / other, self.color / other)
-
-#     class VertexShader:
-#         def __init__(self):
-#             self.rotation: Mat3 = Mat3().Identity()
-#             self.translation : Vec3 = Vec3()
-
-#         def BindRotation(self, rotation: Mat3):
-#             self.rotation = rotation
-
-#         def BindTranslation(self, translation: Vec3):
-#             self.translation = translation
-
-#         def __call__(self, input: VertexPositionColorEffect.Vertex) -> VertexPositionColorEffect.VSOut:
-
-#                 pos = (input.pos * self.rotation) + self.translation
-#                 color = Vec3(abs(pos.x), abs(pos.y), abs(min(1.0, 1/pos.z))) * 255.0
-
-#                 # transform vertices using matrix + vector
-#                 return VertexPositionColorEffect.VSOut(pos, color)
-
-#     class PixelShader:
-#         def __init__(self): ...
-
-#         def __call__(self, input: "VertexPositionColorEffect.VSOut") -> Color:
-#             return Color.FromVec3(input.color)
-
-#     def __init__(self):
-#         self.ps: VertexPositionColorEffect.PixelShader = VertexPositionColorEffect.PixelShader()
-#         self.vs: VertexPositionColorEffect.VertexShader = VertexPositionColorEffect.VertexShader()
-#         self.gs: DefaultGeometryShader[VertexT] = DefaultGeometryShader[VertexT]()
+class GouraudPointEffect(Generic[VertexT]):
+    class Vertex(VertexArithmetic):
+        def __init__(self, pos: Vec4, n: Vec4):
+            self.pos: Vec4 = pos
+            self.n: Vec4 = n
+
+        def UpdatePos(self, pos: Vec4, src: "GouraudPointEffect.Vertex"):
+            return GouraudPointEffect.Vertex(pos, src.n)
+
+        def __add__(self, other: Union["GouraudPointEffect.Vertex", float, int]):
+            if isinstance(other, GouraudPointEffect.Vertex):
+                return GouraudPointEffect.Vertex(self.pos + other.pos, self.n)
+            else:
+                return GouraudPointEffect.Vertex(self.pos + other, self.n)
+
+        def __sub__(self, other: Union["GouraudPointEffect.Vertex", float, int]):
+            if isinstance(other, GouraudPointEffect.Vertex):
+                return GouraudPointEffect.Vertex(self.pos - other.pos, self.n)
+            else:
+                return GouraudPointEffect.Vertex(self.pos - other, self.n)
+
+        def __mul__(self, other: Union["GouraudPointEffect.Vertex", float, int]):
+            if isinstance(other, GouraudPointEffect.Vertex):
+                return GouraudPointEffect.Vertex(self.pos * other.pos, self.n)
+            else:
+                return GouraudPointEffect.Vertex(self.pos * other, self.n)
+
+        def __truediv__(self, other:Union["GouraudPointEffect.Vertex", float, int]):
+            if isinstance(other, GouraudPointEffect.Vertex):
+                return GouraudPointEffect.Vertex(self.pos / other.pos, self.n)
+            else:
+                return GouraudPointEffect.Vertex(self.pos / other, self.n)
+
+    class VSOut(VertexArithmetic):
+        def __init__(self, pos: Vec4, color: Vec3):
+            self.pos: Vec4 = pos
+            self.color: Vec3 = color
+
+        def UpdatePos(self, pos: Vec4, src: "GouraudPointEffect.VSOut"):
+            return GouraudPointEffect.VSOut(pos, src.color)
+
+        def __add__(self, other: Union["GouraudPointEffect.VSOut", float, int]):
+            if isinstance(other, GouraudPointEffect.VSOut):
+                return GouraudPointEffect.VSOut(self.pos + other.pos, self.color + other.color)
+            else:
+                return GouraudPointEffect.VSOut(self.pos + other, self.color + other)
+
+        def __sub__(self, other: Union["GouraudPointEffect.VSOut", float, int]):
+            if isinstance(other, GouraudPointEffect.VSOut):
+                return GouraudPointEffect.VSOut(self.pos - other.pos, self.color - other.color)
+            else:
+                return GouraudPointEffect.VSOut(self.pos - other, self.color - other)
+
+        def __mul__(self, other: Union["GouraudPointEffect.VSOut", float, int]):
+            if isinstance(other, GouraudPointEffect.VSOut):
+                return GouraudPointEffect.VSOut(self.pos * other.pos, self.color * other.color)
+            else:
+                return GouraudPointEffect.VSOut(self.pos * other, self.color * other)
+
+        def __truediv__(self, other:Union["GouraudPointEffect.VSOut", float, int]):
+            if isinstance(other, GouraudPointEffect.VSOut):
+                return GouraudPointEffect.VSOut(self.pos / other.pos, self.color / other.color)
+            else:
+                return GouraudPointEffect.VSOut(self.pos / other, self.color / other)
+
+    class VertexShader:
+        def __init__(self):
+            self.transformation : Mat4 = Mat4().Identity()
+
+            self.light_pos: Vec3 = Vec3(0.0, 0.0, 0.5)
+            self.light_diffuse: Vec3 = Vec3(1.0, 1.0, 1.0)
+            self.light_ambient: Vec3 = Vec3(0.1, 0.1, 0.1)
+            self.material_color: Vec3 = Vec3(0.8, 0.85, 1.0)
+            self.linear_attenuation: float = 1.0
+            self.quadradic_attenuation: float = 2.619
+            self.constant_attenuation: float = 0.382
+
+        def BindTransformation(self, transformation: Mat4):
+            self.transformation = transformation
+
+        def SetLightPosition(self, pos: Vec3):
+            self.light_pos = pos
+
+        def __call__(self, input: GouraudPointEffect.Vertex) -> GouraudPointEffect.VSOut:
+            # transform mech vertex position before lighting calc
+            pos = input.pos * self.transformation
+            # vertex to light data
+            v_to_l = self.light_pos - pos.ToVec3()
+            dist = v_to_l.Len()
+            dir = v_to_l / dist
+            # calculate attenuation
+            attenuation = 1.0 / (self.constant_attenuation + (self.linear_attenuation * dist) + (self.quadradic_attenuation * dist * dist))
+            # calculate intensity based on angle of incidence and attenuation
+            d = self.light_diffuse * attenuation * max(0.0, (Vec4(input.n.x, input.n.y, input.n.z, 0.0) * self.transformation).ToVec3().Dot(dir))
+            # add diffuse+ambient, filter by material color, saturate and scale
+            c = self.material_color * (d + self.light_ambient).Saturate() * 255.0
+
+            # transform vertices using matrix + vector
+            return GouraudPointEffect.VSOut(pos, c)
+
+    class PixelShader:
+        def __init__(self): ...
+
+        def __call__(self, input: "GouraudPointEffect.VSOut") -> Color:
+            return Color.FromVec3(input.color)
+
+    def __init__(self):
+        self.vs: GouraudPointEffect.VertexShader = GouraudPointEffect.VertexShader()
+        self.gs: DefaultGeometryShader[VertexT] = DefaultGeometryShader[VertexT]()
+        self.ps: GouraudPointEffect.PixelShader = GouraudPointEffect.PixelShader()
+
+class GouraudEffect(Generic[VertexT]):
+    class Vertex(VertexArithmetic):
+        def __init__(self, pos: Vec4, n: Vec4):
+            self.pos: Vec4 = pos
+            self.n: Vec4 = n
+
+        def UpdatePos(self, pos: Vec4, src: "GouraudEffect.Vertex"):
+            return GouraudEffect.Vertex(pos, src.n)
+
+        def __add__(self, other: Union["GouraudEffect.Vertex", float, int]):
+            if isinstance(other, GouraudEffect.Vertex):
+                return GouraudEffect.Vertex(self.pos + other.pos, self.n)
+            else:
+                return GouraudEffect.Vertex(self.pos + other, self.n)
+
+        def __sub__(self, other: Union["GouraudEffect.Vertex", float, int]):
+            if isinstance(other, GouraudEffect.Vertex):
+                return GouraudEffect.Vertex(self.pos - other.pos, self.n)
+            else:
+                return GouraudEffect.Vertex(self.pos - other, self.n)
+
+        def __mul__(self, other: Union["GouraudEffect.Vertex", float, int]):
+            if isinstance(other, GouraudEffect.Vertex):
+                return GouraudEffect.Vertex(self.pos * other.pos, self.n)
+            else:
+                return GouraudEffect.Vertex(self.pos * other, self.n)
+
+        def __truediv__(self, other:Union["GouraudEffect.Vertex", float, int]):
+            if isinstance(other, GouraudEffect.Vertex):
+                return GouraudEffect.Vertex(self.pos / other.pos, self.n)
+            else:
+                return GouraudEffect.Vertex(self.pos / other, self.n)
+
+    class VSOut(VertexArithmetic):
+        def __init__(self, pos: Vec4, color: Vec3):
+            self.pos: Vec4 = pos
+            self.color: Vec3 = color
+
+        def UpdatePos(self, pos: Vec4, src: "GouraudEffect.VSOut"):
+            return GouraudEffect.VSOut(pos, src.color)
+
+        def __add__(self, other: Union["GouraudEffect.VSOut", float, int]):
+            if isinstance(other, GouraudEffect.VSOut):
+                return GouraudEffect.VSOut(self.pos + other.pos, self.color + other.color)
+            else:
+                return GouraudEffect.VSOut(self.pos + other, self.color + other)
+
+        def __sub__(self, other: Union["GouraudEffect.VSOut", float, int]):
+            if isinstance(other, GouraudEffect.VSOut):
+                return GouraudEffect.VSOut(self.pos - other.pos, self.color - other.color)
+            else:
+                return GouraudEffect.VSOut(self.pos - other, self.color - other)
+
+        def __mul__(self, other: Union["GouraudEffect.VSOut", float, int]):
+            if isinstance(other, GouraudEffect.VSOut):
+                return GouraudEffect.VSOut(self.pos * other.pos, self.color * other.color)
+            else:
+                return GouraudEffect.VSOut(self.pos * other, self.color * other)
+
+        def __truediv__(self, other:Union["GouraudEffect.VSOut", float, int]):
+            if isinstance(other, GouraudEffect.VSOut):
+                return GouraudEffect.VSOut(self.pos / other.pos, self.color / other.color)
+            else:
+                return GouraudEffect.VSOut(self.pos / other, self.color / other)
+
+    class VertexShader:
+        def __init__(self):
+            self.transformation : Mat4 = Mat4().Identity()
+
+            self.dir: Vec3 = Vec3(0.0, 0.0, 1.0)
+            # this is the intensity if direct light from source
+		    # color light so need values per color component
+            self.diffuse: Vec3 = Vec3(1.0, 1.0, 1.0)
+            # this is intensity of indirect light that bounces off other obj in scene
+		    # color light so need values per color component
+            self.ambient: Vec3 = Vec3(0.1, 0.1, 0.1)
+            # color of material (how much light of each color is reflected)
+            self.color: Vec3 = Vec3(0.8, 0.85, 1.0)
+
+        def BindTransformation(self, transformation: Mat4):
+            self.transformation = transformation
+
+        def SetLightDirection(self, dl: Vec3):
+            self.dir = dl
+
+        def __call__(self, input: GouraudEffect.Vertex) -> GouraudEffect.VSOut:
+
+            # calculate intensity based on angle of incidence
+            d = self.diffuse * max(0.0, -(Vec4(input.n.x, input.n.y, input.n.z, 0.0) * self.transformation).ToVec3().Dot(self.dir))
+			# add diffuse+ambient, filter by material color, saturate and scale
+            c = (self.color * (d + self.ambient)).Saturate() * 255.0
+
+            pos = input.pos * self.transformation
+
+            # transform vertices using matrix + vector
+            return GouraudEffect.VSOut(pos, c)
+
+    class GeometryShader:
+        def __init__(self) -> None:
+            self.triangle_colors: list[Color] = [
+                Color.Gray,
+                Color.LightGray,
+                Color.Red,
+                Color.Green,
+                Color.Blue,
+                Color.Yellow,
+                Color.Cyan,
+                Color.Magenta,
+                Color.Orange,
+                Color.Purple,
+                Color.Brown,
+                Color.Pink,
+                Color.Gold,
+                Color.Silver,
+                Color.Teal,
+                Color.Olive,
+                Color.Maroon,
+                Color.Navy,
+                Color.Lime,
+                Color.Aqua,
+                Color.Fuchsia,
+                Color.Indigo,
+                Color.Violet,
+                Color.Beige,
+                Color.Chocolate,
+                Color.Coral,
+                Color.Turquoise,
+                Color.SkyBlue,
+            ]
+
+        def __call__(self, in0: GouraudEffect.VSOut, in1: GouraudEffect.VSOut, in2: GouraudEffect.VSOut, triangle_index: int):
+
+            cid = triangle_index%len(self.triangle_colors)
+
+            out0 = GouraudEffect.VSOut(in0.pos, self.triangle_colors[cid].ToVec3())
+            out1 = GouraudEffect.VSOut(in1.pos, self.triangle_colors[cid].ToVec3())
+            out2 = GouraudEffect.VSOut(in2.pos, self.triangle_colors[cid].ToVec3())
+
+            return Triangle(out0, out1, out2)
+
+    class PixelShader:
+        def __init__(self): ...
+
+        def __call__(self, input: "GouraudEffect.VSOut") -> Color:
+            return Color.FromVec3(input.color)
+
+    def __init__(self):
+        self.vs: GouraudEffect.VertexShader = GouraudEffect.VertexShader()
+        # self.gs: GouraudEffect.GeometryShader = GouraudEffect.GeometryShader()
+        self.gs: DefaultGeometryShader[VertexT] = DefaultGeometryShader[VertexT]()
+        self.ps: GouraudEffect.PixelShader = GouraudEffect.PixelShader()
+
+class WaveVertexTextureEffec(Generic[VertexT]):
+
+    class Vertex(VertexArithmetic):
+        def __init__(self, pos: Vec4, t: Vec2):
+            self.pos: Vec4 = pos
+            self.t: Vec2 = t
+
+        def UpdatePos(self, pos: Vec4, src: "WaveVertexTextureEffec.Vertex"):
+            return WaveVertexTextureEffec.Vertex(pos, src.t)
+
+        def __add__(self, other: Union["WaveVertexTextureEffec.Vertex", float, int]):
+            if isinstance(other, WaveVertexTextureEffec.Vertex):
+                return WaveVertexTextureEffec.Vertex(self.pos + other.pos, self.t)
+            else:
+                return WaveVertexTextureEffec.Vertex(self.pos + other, self.t)
+
+        def __sub__(self, other: Union["WaveVertexTextureEffec.Vertex", float, int]):
+            if isinstance(other, WaveVertexTextureEffec.Vertex):
+                return WaveVertexTextureEffec.Vertex(self.pos - other.pos, self.t)
+            else:
+                return WaveVertexTextureEffec.Vertex(self.pos - other, self.t)
+
+        def __mul__(self, other: Union["WaveVertexTextureEffec.Vertex", float, int]):
+            if isinstance(other, WaveVertexTextureEffec.Vertex):
+                return WaveVertexTextureEffec.Vertex(self.pos * other.pos, self.t)
+            else:
+                return WaveVertexTextureEffec.Vertex(self.pos * other, self.t)
+
+        def __truediv__(self, other:Union["WaveVertexTextureEffec.Vertex", float, int]):
+            if isinstance(other, WaveVertexTextureEffec.Vertex):
+                return WaveVertexTextureEffec.Vertex(self.pos / other.pos, self.t)
+            else:
+                return WaveVertexTextureEffec.Vertex(self.pos / other, self.t)
+
+    class GSOut(VertexArithmetic):
+        def __init__(self, pos: Vec4, t: Vec2, l: float):
+            self.pos: Vec4 = pos
+            self.l: float = l
+            self.t: Vec2 = t
+
+        def UpdatePos(self, pos: Vec4, src: "WaveVertexTextureEffec.GSOut"):
+            return WaveVertexTextureEffec.GSOut(pos, src.t, src.l)
+
+        def __add__(self, other: Union["WaveVertexTextureEffec.GSOut", float, int]):
+            if isinstance(other, WaveVertexTextureEffec.GSOut):
+                return WaveVertexTextureEffec.GSOut(self.pos + other.pos, self.t + other.t, self.l)
+            else:
+                return WaveVertexTextureEffec.GSOut(self.pos + other, self.t + other, self.l)
+
+        def __sub__(self, other: Union["WaveVertexTextureEffec.GSOut", float, int]):
+            if isinstance(other, WaveVertexTextureEffec.GSOut):
+                return WaveVertexTextureEffec.GSOut(self.pos - other.pos, self.t - other.t, self.l)
+            else:
+                return WaveVertexTextureEffec.GSOut(self.pos - other, self.t - other, self.l)
+
+        def __mul__(self, other: Union["WaveVertexTextureEffec.GSOut", float, int]):
+            if isinstance(other, WaveVertexTextureEffec.GSOut):
+                return WaveVertexTextureEffec.GSOut(self.pos * other.pos, self.t * other.t, self.l)
+            else:
+                return WaveVertexTextureEffec.GSOut(self.pos * other, self.t * other, self.l)
+
+        def __truediv__(self, other:Union["WaveVertexTextureEffec.GSOut", float, int]):
+            if isinstance(other, WaveVertexTextureEffec.GSOut):
+                return WaveVertexTextureEffec.GSOut(self.pos / other.pos, self.t / other.t, self.l)
+            else:
+                return WaveVertexTextureEffec.GSOut(self.pos / other, self.t / other, self.l)
+
+    class VertexShader:
+        def __init__(self):
+            self.transformation : Mat4 = Mat4().Identity()
+
+            self.time: float = 0.0
+            self.freq_wave: float = 10.0
+            self.freq_scroll: float = 5.0
+            self.amplitude: float = 0.05
+
+        def BindTransformation(self, transformation: Mat4):
+            self.transformation = transformation
+
+        def SetTime(self, t: float):
+            self.time = t
+
+        def __call__(self, input: WaveVertexTextureEffec.Vertex) -> WaveVertexTextureEffec.Vertex:
+                pos = input.pos * self.transformation
+                pos.y += self.amplitude * sin(self.time * self.freq_scroll + pos.x * self.freq_wave)
+                return input.UpdatePos(pos, input)
+
+    class GeometryShader:
+        def __init__(self) -> None:
+            self.dir: Vec3 = Vec3(0.0, 0.0, 1.0)
+            self.diffuse: float = 1.0
+            self.ambient: float = 0.15
+
+        def SetLightDirection(self, dl: Vec3):
+            self.dir = dl
+
+        def __call__(self, in0: WaveVertexTextureEffec.Vertex, in1: WaveVertexTextureEffec.Vertex, in2: WaveVertexTextureEffec.Vertex, triangle_index: int):
+
+            n = ((in1.pos - in0.pos).ToVec3()).Cross((in2.pos - in0.pos).ToVec3()).GetNormalized()
+            d = self.diffuse * max(0.0, -(n.Dot(self.dir)))
+            l = min(1.0, d + self.ambient)
+
+            out0 = WaveVertexTextureEffec.GSOut(in0.pos, in0.t, l)
+            out1 = WaveVertexTextureEffec.GSOut(in1.pos, in1.t, l)
+            out2 = WaveVertexTextureEffec.GSOut(in2.pos, in2.t, l)
+
+            return Triangle(out0, out1, out2)
+
+    class PixelShader:
+        def __init__(self):
+            self.texture: Surface = Surface(0, 0)
+            self.tex_width: float = 0.0
+            self.tex_height: float = 0.0
+            self.tex_xclamp: float = 0.0
+            self.tex_yclamp: float = 0.0
+
+        def __call__(self, input: "WaveVertexTextureEffec.GSOut") -> Color:
+            color = self.texture.GetPixel(
+                int(max(0, min(input.t.x * self.tex_width + 0.5, self.tex_xclamp))),
+                int(max(0, min(input.t.y * self.tex_height + 0.5, self.tex_yclamp)))
+            )
+
+            return Color(int(color.r * input.l), int(color.g * input.l), int(color.b * input.l))
+
+        def BindTexture(self, filename: str):
+            self.texture = Surface.FromFile(filename)
+            self.tex_width = float(self.texture.GetWidth())
+            self.tex_height = float(self.texture.GetHeight())
+            self.tex_xclamp = self.tex_width - 1.0
+            self.tex_yclamp = self.tex_height - 1.0
+
+    def __init__(self):
+        self.vs: WaveVertexTextureEffec.VertexShader = WaveVertexTextureEffec.VertexShader()
+        self.gs: WaveVertexTextureEffec.GeometryShader = WaveVertexTextureEffec.GeometryShader()
+        self.ps: WaveVertexTextureEffec.PixelShader = WaveVertexTextureEffec.PixelShader()
+
+class VertexFlatEffect(Generic[VertexT]):
+    class Vertex(VertexArithmetic):
+        def __init__(self, pos: Vec4, n: Vec4):
+            self.pos: Vec4 = pos
+            self.n: Vec4 = n
+
+        def UpdatePos(self, pos: Vec4, src: "VertexFlatEffect.Vertex"):
+            return VertexFlatEffect.Vertex(pos, src.n)
+
+        def __add__(self, other: Union["VertexFlatEffect.Vertex", float, int]):
+            if isinstance(other, VertexFlatEffect.Vertex):
+                return VertexFlatEffect.Vertex(self.pos + other.pos, self.n)
+            else:
+                return VertexFlatEffect.Vertex(self.pos + other, self.n)
+
+        def __sub__(self, other: Union["VertexFlatEffect.Vertex", float, int]):
+            if isinstance(other, VertexFlatEffect.Vertex):
+                return VertexFlatEffect.Vertex(self.pos - other.pos, self.n)
+            else:
+                return VertexFlatEffect.Vertex(self.pos - other, self.n)
+
+        def __mul__(self, other: Union["VertexFlatEffect.Vertex", float, int]):
+            if isinstance(other, VertexFlatEffect.Vertex):
+                return VertexFlatEffect.Vertex(self.pos * other.pos, self.n)
+            else:
+                return VertexFlatEffect.Vertex(self.pos * other, self.n)
+
+        def __truediv__(self, other:Union["VertexFlatEffect.Vertex", float, int]):
+            if isinstance(other, VertexFlatEffect.Vertex):
+                return VertexFlatEffect.Vertex(self.pos / other.pos, self.n)
+            else:
+                return VertexFlatEffect.Vertex(self.pos / other, self.n)
+
+    class VSOut(VertexArithmetic):
+        def __init__(self, pos: Vec4, color: Vec3):
+            self.pos: Vec4 = pos
+            self.color: Vec3 = color
+
+        def UpdatePos(self, pos: Vec4, src: "VertexFlatEffect.VSOut"):
+            return VertexFlatEffect.VSOut(pos, src.color)
+
+        def __add__(self, other: Union["VertexFlatEffect.VSOut", float, int]):
+            if isinstance(other, VertexFlatEffect.VSOut):
+                return VertexFlatEffect.VSOut(self.pos + other.pos, self.color)
+            else:
+                return VertexFlatEffect.VSOut(self.pos + other, self.color)
+
+        def __sub__(self, other: Union["VertexFlatEffect.VSOut", float, int]):
+            if isinstance(other, VertexFlatEffect.VSOut):
+                return VertexFlatEffect.VSOut(self.pos - other.pos, self.color)
+            else:
+                return VertexFlatEffect.VSOut(self.pos - other, self.color)
+
+        def __mul__(self, other: Union["VertexFlatEffect.VSOut", float, int]):
+            if isinstance(other, VertexFlatEffect.VSOut):
+                return VertexFlatEffect.VSOut(self.pos * other.pos, self.color)
+            else:
+                return VertexFlatEffect.VSOut(self.pos * other, self.color)
+
+        def __truediv__(self, other:Union["VertexFlatEffect.VSOut", float, int]):
+            if isinstance(other, VertexFlatEffect.VSOut):
+                return VertexFlatEffect.VSOut(self.pos / other.pos, self.color)
+            else:
+                return VertexFlatEffect.VSOut(self.pos / other, self.color)
+
+    class VertexShader:
+        def __init__(self):
+            self.transformation : Mat4 = Mat4().Identity()
+
+            self.dir: Vec3 = Vec3(0.0, 0.0, 1.0)
+            # this is the intensity if direct light from source
+		    # color light so need values per color component
+            self.diffuse: Vec3 = Vec3(1.0, 1.0, 1.0)
+            # this is intensity of indirect light that bounces off other obj in scene
+		    # color light so need values per color component
+            self.ambient: Vec3 = Vec3(0.1, 0.1, 0.1)
+            # color of material (how much light of each color is reflected)
+            self.color: Vec3 = Vec3(0.8, 0.85, 1.0)
+
+        def BindTransformation(self, transformation: Mat4):
+            self.transformation = transformation
+
+        def SetLightDirection(self, dl: Vec3):
+            self.dir = dl
+
+        def __call__(self, input: VertexFlatEffect.Vertex) -> VertexFlatEffect.VSOut:
+
+            # calculate intensity based on angle of incidence
+            d = self.diffuse * max(0.0, -(Vec4(input.n.x, input.n.y, input.n.z, 0.0) * self.transformation).ToVec3().Dot(self.dir))
+			# add diffuse+ambient, filter by material color, saturate and scale
+            c = (self.color * (d + self.ambient)).Saturate() * 255.0
+
+            pos = input.pos * self.transformation
+
+            # transform vertices using matrix + vector
+            return VertexFlatEffect.VSOut(pos, c)
+
+    class PixelShader:
+        def __init__(self): ...
+
+        def __call__(self, input: "VertexFlatEffect.VSOut") -> Color:
+            return Color.FromVec3(input.color)
+
+    def __init__(self):
+        self.ps: VertexFlatEffect.PixelShader = VertexFlatEffect.PixelShader()
+        self.vs: VertexFlatEffect.VertexShader = VertexFlatEffect.VertexShader()
+        self.gs: DefaultGeometryShader[VertexT] = DefaultGeometryShader[VertexT]()
+
+class VertexPositionColorEffect(Generic[VertexT]):
+    class Vertex(VertexArithmetic):
+        def __init__(self, pos: Vec4):
+            self.pos: Vec4 = pos
+
+        def UpdatePos(self, pos: Vec4, src: "VertexPositionColorEffect.Vertex"):
+            return VertexPositionColorEffect.Vertex(pos)
+
+        def __add__(self, other: Union["VertexPositionColorEffect.Vertex", float, int]):
+            if isinstance(other, VertexPositionColorEffect.Vertex):
+                return VertexPositionColorEffect.Vertex(self.pos + other.pos)
+            else:
+                return VertexPositionColorEffect.Vertex(self.pos + other)
+
+        def __sub__(self, other: Union["VertexPositionColorEffect.Vertex", float, int]):
+            if isinstance(other, VertexPositionColorEffect.Vertex):
+                return VertexPositionColorEffect.Vertex(self.pos - other.pos)
+            else:
+                return VertexPositionColorEffect.Vertex(self.pos - other)
+
+        def __mul__(self, other: Union["VertexPositionColorEffect.Vertex", float, int]):
+            if isinstance(other, VertexPositionColorEffect.Vertex):
+                return VertexPositionColorEffect.Vertex(self.pos * other.pos)
+            else:
+                return VertexPositionColorEffect.Vertex(self.pos * other)
+
+        def __truediv__(self, other:Union["VertexPositionColorEffect.Vertex", float, int]):
+            if isinstance(other, VertexPositionColorEffect.Vertex):
+                return VertexPositionColorEffect.Vertex(self.pos / other.pos)
+            else:
+                return VertexPositionColorEffect.Vertex(self.pos / other)
+
+    class VSOut(VertexArithmetic):
+        def __init__(self, pos: Vec4, color: Vec3):
+            self.pos: Vec4 = pos
+            self.color: Vec3 = color
+
+        def UpdatePos(self, pos: Vec4, src: "VertexPositionColorEffect.VSOut"):
+            return VertexPositionColorEffect.VSOut(pos, src.color)
+
+        def __add__(self, other: Union["VertexPositionColorEffect.VSOut", float, int]):
+            if isinstance(other, VertexPositionColorEffect.VSOut):
+                return VertexPositionColorEffect.VSOut(self.pos + other.pos, self.color + other.color)
+            else:
+                return VertexPositionColorEffect.VSOut(self.pos + other, self.color + other)
+
+        def __sub__(self, other: Union["VertexPositionColorEffect.VSOut", float, int]):
+            if isinstance(other, VertexPositionColorEffect.VSOut):
+                return VertexPositionColorEffect.VSOut(self.pos - other.pos, self.color - other.color)
+            else:
+                return VertexPositionColorEffect.VSOut(self.pos - other, self.color - other)
+
+        def __mul__(self, other: Union["VertexPositionColorEffect.VSOut", float, int]):
+            if isinstance(other, VertexPositionColorEffect.VSOut):
+                return VertexPositionColorEffect.VSOut(self.pos * other.pos, self.color * other.color)
+            else:
+                return VertexPositionColorEffect.VSOut(self.pos * other, self.color * other)
+
+        def __truediv__(self, other:Union["VertexPositionColorEffect.VSOut", float, int]):
+            if isinstance(other, VertexPositionColorEffect.VSOut):
+                return VertexPositionColorEffect.VSOut(self.pos / other.pos, self.color / other.color)
+            else:
+                return VertexPositionColorEffect.VSOut(self.pos / other, self.color / other)
+
+    class VertexShader:
+        def __init__(self):
+            self.transformation : Mat4 = Mat4().Identity()
+
+        def BindTransformation(self, transformation: Mat4):
+            self.transformation = transformation
+
+        def __call__(self, input: VertexPositionColorEffect.Vertex) -> VertexPositionColorEffect.VSOut:
+                pos = input.pos * self.transformation
+                color = Vec3(abs(pos.x), abs(pos.y), abs(min(1.0, 1/pos.z))) * 255.0
+
+                # transform vertices using matrix + vector
+                return VertexPositionColorEffect.VSOut(pos, color)
+
+    class PixelShader:
+        def __init__(self): ...
+
+        def __call__(self, input: "VertexPositionColorEffect.VSOut") -> Color:
+            return Color.FromVec3(input.color)
+
+    def __init__(self):
+        self.ps: VertexPositionColorEffect.PixelShader = VertexPositionColorEffect.PixelShader()
+        self.vs: VertexPositionColorEffect.VertexShader = VertexPositionColorEffect.VertexShader()
+        self.gs: DefaultGeometryShader[VertexT] = DefaultGeometryShader[VertexT]()
 
 class SolidEffect(Generic[VertexT]):
 
