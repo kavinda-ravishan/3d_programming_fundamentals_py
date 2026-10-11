@@ -10,11 +10,14 @@ class SceneSpecularPhongPoint(Scene):
     def __init__(self):
         super().__init__()
         self.it_list = Cube.GetPlainIndependentFaces(
-            lambda vertices, normals: [SceneSpecularPhongPointEffect.Vertex(position.ToVec4(), normals[i].ToVec4()) for i, position in enumerate(vertices)]
+            lambda vertices, normals: [SceneSpecularPhongPointEffect.Vertex(position.ToVec4(), normals[i]) for i, position in enumerate(vertices)]
         )
         self.light_indicator = Sphere.GetPlain(
             lambda vertices, _: [SolidEffect.Vertex(position.ToVec4()) for position in vertices], 0.05
         )
+
+        # self.proj: Final[Mat4] = Mat4.Projection(2.6666666, 2.0, 1.0, 10.0)
+        self.proj = Mat4.ProjectionHFOV(100.0, 1.33333, 1.0, 10.0)
         
         self.d_thete: Final[float] = pi
         self.offset_z: float = 2.0
@@ -85,7 +88,8 @@ class SceneSpecularPhongPoint(Scene):
         transformation_matrix_light_position: Final[Mat4] = Mat4.TranslationVec(light_position)
     
     	# set pipeline transform
-        self.pipeline.effect.vs.BindTransformation(transformation_matrix)
+        self.pipeline.effect.vs.BindWorld(transformation_matrix)
+        self.pipeline.effect.vs.BindProjection(self.proj)
         self.pipeline.effect.ps.SetLightPosition(light_position)
 
         self.pipeline.Draw(self.it_list)
@@ -93,5 +97,6 @@ class SceneSpecularPhongPoint(Scene):
         # draw light indicator with different pipeline
         # don't call beginframe on this pipeline b/c wanna keep zbuffer contents
         # (don't like this assymetry but we'll live with it for now)
-        self.li_pipeline.effect.vs.BindTransformation(transformation_matrix_light_position)
+        self.li_pipeline.effect.vs.BindWorld(transformation_matrix_light_position)
+        self.li_pipeline.effect.vs.BindProjection(self.proj)
         self.li_pipeline.Draw(self.light_indicator)

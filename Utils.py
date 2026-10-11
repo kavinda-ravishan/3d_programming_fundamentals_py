@@ -1,5 +1,5 @@
 from typing import Any, Union, Final, Generic, TypeVar, overload, Protocol, Self
-from math import sin, cos, pi, sqrt
+from math import sin, cos, tan, pi, sqrt
 from copy import deepcopy
 
 VertexT = TypeVar("VertexT", bound="VertexArithmetic")
@@ -521,6 +521,33 @@ class Mat4:
     @staticmethod
     def TranslationVec(vec: Union[Vec3, Vec4]):
         return Mat4.Translation(vec.x, vec.y, vec.z)
+
+    @staticmethod
+    def ProjectionHFOV(fov: Union[int, float], ar: Union[int, float], n: Union[int, float], f: Union[int, float]):
+
+        fov_rad = fov * pi / 180.0
+        w = 1.0 / tan(fov_rad / 2.0)
+        h = w * ar
+        
+        return Mat4(
+            (
+                (w, 0, 0,            0), 
+                (0, h, 0,            0), 
+                (0, 0, f/(f-n),      1.0),
+                (0, 0, (-n*f)/(f-n), 0)
+            )
+        )
+
+    @staticmethod
+    def Projection(w: Union[int, float], h: Union[int, float], n: Union[int, float], f: Union[int, float]):
+        return Mat4(
+            (
+                ((2.0*n)/w, 0,         0,            0), 
+                (0,         (2.0*n)/h, 0,            0), 
+                (0,         0,         f/(f-n),      1.0),
+                (0,         0,         (-n*f)/(f-n), 0)
+            )
+        )
 
 class Color:
     White: Color

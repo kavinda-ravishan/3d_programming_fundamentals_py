@@ -4,7 +4,7 @@ from math import ceil
 import numpy as np
 import cv2
 from typing import Union, Generic
-from Utils import VertexT, Vec2, Color, IndexedTriangleList, Triangle, Interpolate
+from Utils import VertexT, Vec2, Vec4, Color, IndexedTriangleList, Triangle, Interpolate
 
 class ZBuffer:
     def __init__(self, width: int, height: int):
@@ -115,20 +115,19 @@ class Keyboard:
         self.key = None
         return key
 
-# PC3 : Pre-cliped 3D space
-class PC3Transformer(Generic[VertexT]):
+class NDCScreenTransformer(Generic[VertexT]):
     def __init__(self, screen_width: int, screen_height: int) -> None:
         self.x_factor: Final[float] = screen_width / 2
         self.y_factor: Final[float] = screen_height / 2
 
     def GetTransform(self, vertex: VertexT):
-        z_inv: Final[float] = 1.0 / vertex.pos.z
+        w_inv: Final[float] = 1.0 / vertex.pos.w
 
-        transformed = vertex * z_inv
+        transformed = vertex * w_inv
 
         transformed.pos.x = (transformed.pos.x + 1.0) * self.x_factor
         transformed.pos.y = (-transformed.pos.y + 1.0) * self.y_factor
-        transformed.pos.z = z_inv
+        transformed.pos.w = w_inv
 
         return transformed
 
@@ -174,7 +173,7 @@ class Pipeline(Generic[VertexT]):
         frame_width: Final[int] = self.gfx.surface.GetWidth()
         frame_height: Final[int] = self.gfx.surface.GetHeight()
 
-        self.pc3: Final[PC3Transformer[VertexT]] = PC3Transformer(frame_width, frame_height)
+        self.pc3: Final[NDCScreenTransformer[VertexT]] = NDCScreenTransformer(frame_width, frame_height)
         self.z_buffer: Final[ZBuffer] = ZBuffer(frame_width, frame_height) if z_buffer is None else z_buffer
         
         self.effect: Any = effect
@@ -205,7 +204,9 @@ class Pipeline(Generic[VertexT]):
             v1 = vertices[triangle_indices[1]]
             v2 = vertices[triangle_indices[2]]
 
-            if((v1.pos.ToVec3() - v0.pos.ToVec3()).Cross(v2.pos.ToVec3() - v0.pos.ToVec3()).Dot(v0.pos.ToVec3()) <= 0.0):
+            eyepos = Vec4(0, 0, 0, 1) * self.effect.vs.GetProj()
+
+            if((v1.pos.ToVec3() - v0.pos.ToVec3()).Cross(v2.pos.ToVec3() - v0.pos.ToVec3()).Dot((v0.pos - eyepos).ToVec3()) <= 0.0):
                 self._ProcessTriangle(v0, v1, v2, i)
 
     def _ProcessTriangle(self, v0: VertexT, v1: VertexT, v2: VertexT, triangle_index: int):
@@ -318,10 +319,9 @@ class Pipeline(Generic[VertexT]):
             i_line += di_line * (float(x_start) + 0.5 - it_edge0.pos.x)
 
             for x in range(x_start, x_end):
-                z = 1.0 / i_line.pos.z
-                attr = i_line * z
-
-                if self.z_buffer.TestAndSet(x, y, z):
+                if self.z_buffer.TestAndSet(x, y, i_line.pos.z):
+                    w = 1.0 / i_line.pos.w
+                    attr = i_line * w
                     # perform texture lookup, clamp, and write pixel
                     self.gfx.PutPixel(x, y, self.effect.ps(attr))
 
