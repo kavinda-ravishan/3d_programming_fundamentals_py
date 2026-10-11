@@ -173,7 +173,7 @@ class Pipeline(Generic[VertexT]):
         frame_width: Final[int] = self.gfx.surface.GetWidth()
         frame_height: Final[int] = self.gfx.surface.GetHeight()
 
-        self.pc3: Final[NDCScreenTransformer[VertexT]] = NDCScreenTransformer(frame_width, frame_height)
+        self.ndc: Final[NDCScreenTransformer[VertexT]] = NDCScreenTransformer(frame_width, frame_height)
         self.z_buffer: Final[ZBuffer] = ZBuffer(frame_width, frame_height) if z_buffer is None else z_buffer
         
         self.effect: Any = effect
@@ -214,9 +214,9 @@ class Pipeline(Generic[VertexT]):
 
     def _PostProcessTriangleVertices(self, triangle: Triangle[VertexT]):
 		# perspective divide and screen transform for all 3 vertices
-        triangle.v0 = self.pc3.GetTransform( triangle.v0 )
-        triangle.v1 = self.pc3.GetTransform( triangle.v1 )
-        triangle.v2 = self.pc3.GetTransform( triangle.v2 )
+        triangle.v0 = self.ndc.GetTransform( triangle.v0 )
+        triangle.v1 = self.ndc.GetTransform( triangle.v1 )
+        triangle.v2 = self.ndc.GetTransform( triangle.v2 )
 
 		# draw the triangle
         self._DrawTriangle( triangle )
