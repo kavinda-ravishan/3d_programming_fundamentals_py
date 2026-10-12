@@ -204,14 +204,80 @@ class Pipeline(Generic[VertexT]):
             v1 = vertices[triangle_indices[1]]
             v2 = vertices[triangle_indices[2]]
 
-
             self._ProcessTriangle(v0, v1, v2, i)
 
     def _ProcessTriangle(self, v0: VertexT, v1: VertexT, v2: VertexT, triangle_index: int):
         triangle = self.effect.gs(v0, v1, v2, triangle_index)
 
         eyepos = Vec4(0, 0, 0, 1) * self.effect.vs.GetProj()
-        if((v1.pos.ToVec3() - v0.pos.ToVec3()).Cross(v2.pos.ToVec3() - v0.pos.ToVec3()).Dot((v0.pos - eyepos).ToVec3()) <= 0.0):
+        if((v1.pos.ToVec3() - v0.pos.ToVec3()).Cross(v2.pos.ToVec3() - v0.pos.ToVec3()).Dot((v0.pos - eyepos).ToVec3()) <= 0.0):            
+            self._ClipCullTriangle(triangle)
+
+    def _ClipCullTriangle(self, triangle: Triangle[VertexT]):
+        # cull tests
+        if( triangle.v0.pos.x > triangle.v0.pos.w and
+            triangle.v1.pos.x > triangle.v1.pos.w and
+            triangle.v2.pos.x > triangle.v2.pos.w):
+            return
+        if(triangle.v0.pos.x < -triangle.v0.pos.w and
+           triangle.v1.pos.x < -triangle.v1.pos.w and
+           triangle.v2.pos.x < -triangle.v2.pos.w):
+            return
+        if(triangle.v0.pos.y > triangle.v0.pos.w and
+           triangle.v1.pos.y > triangle.v1.pos.w and
+           triangle.v2.pos.y > triangle.v2.pos.w):
+            return
+        if(triangle.v0.pos.y < -triangle.v0.pos.w and
+           triangle.v1.pos.y < -triangle.v1.pos.w and
+           triangle.v2.pos.y < -triangle.v2.pos.w):
+            return
+        if(triangle.v0.pos.z > triangle.v0.pos.w and
+           triangle.v1.pos.z > triangle.v1.pos.w and
+           triangle.v2.pos.z > triangle.v2.pos.w):
+            return
+        if(triangle.v0.pos.z < 0.0 and
+           triangle.v1.pos.z < 0.0 and
+           triangle.v2.pos.z < 0.0):
+            return
+
+        # clipping routines
+        def Clip1(v0: VertexT, v1: VertexT, v2: VertexT):
+            # calculate alpha values for getting adjusted vertices
+            alpha_a = (-v0.pos.z) / (v1.pos.z - v0.pos.z)
+            alpha_b = (-v0.pos.z) / (v2.pos.z - v0.pos.z)
+            # interpolate to get v0a and v0b
+            v0a = Interpolate(v0, v1, alpha_a)
+            v0b = Interpolate(v0, v2, alpha_b)
+            # draw triangles
+            self._PostProcessTriangleVertices(Triangle(v0a,v1,v2))
+            self._PostProcessTriangleVertices(Triangle(v0b,v0a,v2))
+
+        def Clip2(v0: VertexT, v1: VertexT, v2: VertexT):
+            # calculate alpha values for getting adjusted vertices
+            alpha0 = (-v0.pos.z) / (v2.pos.z - v0.pos.z)
+            alpha1 = (-v1.pos.z) / (v2.pos.z - v1.pos.z)
+            # interpolate to get v0a and v0b
+            v0 = Interpolate(v0, v2, alpha0)
+            v1 = Interpolate(v1, v2, alpha1)
+            # draw triangles
+            self._PostProcessTriangleVertices(Triangle(v0,v1,v2))
+
+        # near clipping tests
+        if(triangle.v0.pos.z < 0.0):
+            if(triangle.v1.pos.z < 0.0):
+                Clip2(triangle.v0, triangle.v1, triangle.v2)
+            elif(triangle.v2.pos.z < 0.0):
+                Clip2(triangle.v0, triangle.v2, triangle.v1)
+            else:
+                Clip1(triangle.v0, triangle.v1, triangle.v2)
+        elif(triangle.v1.pos.z < 0.0):
+            if(triangle.v2.pos.z < 0.0):
+                Clip2(triangle.v1, triangle.v2, triangle.v0)
+            else:
+                Clip1(triangle.v1, triangle.v0, triangle.v2)
+        elif(triangle.v2.pos.z < 0.0):
+            Clip1(triangle.v2, triangle.v0, triangle.v1)
+        else: # no near clipping necessary
             self._PostProcessTriangleVertices(triangle)
 
     def _PostProcessTriangleVertices(self, triangle: Triangle[VertexT]):
@@ -294,8 +360,8 @@ class Pipeline(Generic[VertexT]):
         it_edge1 = it_edge_1
 
 		# calculate start and end scanlines
-        y_start: Final[int] = int(ceil(float(it0.pos.y - 0.5)))
-        y_end: Final[int] = int(ceil(float(it2.pos.y - 0.5))) # the scanline AFTER the last line drawn
+        y_start: Final[int] = max(int(ceil(float(it0.pos.y - 0.5))), 0)
+        y_end: Final[int] = min(int(ceil(float(it2.pos.y - 0.5))), self.gfx.surface.GetHeight() - 1) # the scanline AFTER the last line drawn
 
         # do interpolant prestep
         it_edge0 += dv0 * (float(y_start) + 0.5 - it0.pos.y)
@@ -303,8 +369,8 @@ class Pipeline(Generic[VertexT]):
 
         for y in range(y_start, y_end):
 			# calculate start and end pixels
-            x_start: int = int(ceil(float(it_edge0.pos.x - 0.5)))
-            x_end: int = int(ceil(float(it_edge1.pos.x - 0.5))) # the pixel AFTER the last pixel drawn
+            x_start: int = max(int(ceil(float(it_edge0.pos.x - 0.5))), 0)
+            x_end: int = min(int(ceil(float(it_edge1.pos.x - 0.5))), self.gfx.surface.GetWidth() - 1) # the pixel AFTER the last pixel drawn
 
             # create scanline interpolant startpoint
             # (some waste for interpolating x,y,z, but makes life easier not having

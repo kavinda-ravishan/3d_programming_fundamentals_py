@@ -20,14 +20,14 @@ class SceneSpecularPhongPoint(Scene):
         self.proj = Mat4.ProjectionHFOV(100.0, 1.33333, 1.0, 10.0)
         
         self.d_thete: Final[float] = pi
-        self.offset_z: float = 2.0
+        self.offset_z: float = 2.2
         self.theta_x: float = 0.0
         self.theta_y: float = 0.0
         self.theta_z: float = 0.0
 
         self.lpos_x: float = 0.0
         self.lpos_y: float = 0.0
-        self.lpos_z: float = 0.6
+        self.lpos_z: float = 1.1
 
     def SetupComplete(self):
         if not hasattr(self, 'gfx'): raise Exception("Graphics not found")
