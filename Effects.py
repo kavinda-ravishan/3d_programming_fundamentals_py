@@ -1,7 +1,9 @@
 from typing import Union, Generic
-from math import sin, pow
-from Utils import VertexT, VertexArithmetic, Vec3, Vec2, Color, Triangle, Vec4, Mat4
-from Engine import Surface
+# from math import sin, pow
+from math import pow
+# from Utils import VertexT, VertexArithmetic, Vec3, Vec2, Color, Triangle, Vec4, Mat4
+from Utils import VertexT, VertexArithmetic, Vec3, Color, Triangle, Vec4, Mat4
+# from Engine import Surface
 
 class DefaultGeometryShader(Generic[VertexT]):
     def __call__(self, in0: VertexT, in1: VertexT, in2: VertexT, triangle_index: int):

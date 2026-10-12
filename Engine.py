@@ -204,13 +204,15 @@ class Pipeline(Generic[VertexT]):
             v1 = vertices[triangle_indices[1]]
             v2 = vertices[triangle_indices[2]]
 
-            eyepos = Vec4(0, 0, 0, 1) * self.effect.vs.GetProj()
 
-            if((v1.pos.ToVec3() - v0.pos.ToVec3()).Cross(v2.pos.ToVec3() - v0.pos.ToVec3()).Dot((v0.pos - eyepos).ToVec3()) <= 0.0):
-                self._ProcessTriangle(v0, v1, v2, i)
+            self._ProcessTriangle(v0, v1, v2, i)
 
     def _ProcessTriangle(self, v0: VertexT, v1: VertexT, v2: VertexT, triangle_index: int):
-        self._PostProcessTriangleVertices(self.effect.gs(v0, v1, v2, triangle_index))
+        triangle = self.effect.gs(v0, v1, v2, triangle_index)
+
+        eyepos = Vec4(0, 0, 0, 1) * self.effect.vs.GetProj()
+        if((v1.pos.ToVec3() - v0.pos.ToVec3()).Cross(v2.pos.ToVec3() - v0.pos.ToVec3()).Dot((v0.pos - eyepos).ToVec3()) <= 0.0):
+            self._PostProcessTriangleVertices(triangle)
 
     def _PostProcessTriangleVertices(self, triangle: Triangle[VertexT]):
 		# perspective divide and screen transform for all 3 vertices
