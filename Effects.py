@@ -11,8 +11,8 @@ class DefaultGeometryShader(Generic[VertexT]):
 
 class DefaultVertexShader(Generic[VertexT]):
     def __init__(self):
-            self.world_view: Mat4 = Mat4().Identity()
             self.proj: Mat4 = Mat4().Identity()
+            self.world_view: Mat4 = Mat4().Identity()
             self.world_view_proj: Mat4 = Mat4().Identity()
 
     def BindWorldView(self, transformation: Mat4):
@@ -98,21 +98,13 @@ class SceneSpecularPhongPointEffect(Generic[VertexT]):
 
     class VertexShader:
         def __init__(self):
-            self.world: Mat4 = Mat4().Identity()
-            self.view: Mat4 = Mat4().Identity()
             self.proj: Mat4 = Mat4().Identity()
             self.world_view: Mat4 = Mat4().Identity()
             self.world_view_proj: Mat4 = Mat4().Identity()
 
-        def BindWorld(self, transformation: Mat4):
-            self.world = transformation
-            self.world_view = self.world * self.view 
-            self.world_view_proj = self.world_view * self.proj 
-
-        def BindView(self, transformation: Mat4):
-            self.view = transformation
-            self.world_view = self.world * self.view 
-            self.world_view_proj = self.world_view * self.proj 
+        def BindWorldView(self, transformation: Mat4):
+            self.world_view = transformation
+            self.world_view_proj = self.world_view * self.proj
 
         def BindProjection(self, transformation: Mat4):
             self.proj = transformation

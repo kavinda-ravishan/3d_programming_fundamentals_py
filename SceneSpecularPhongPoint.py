@@ -122,8 +122,7 @@ class SceneSpecularPhongPoint(Scene):
         transformation_matrix_light_position: Final[Mat4] = Mat4.TranslationVec(self.lpos)
     
     	# set pipeline transform
-        self.pipeline.effect.vs.BindWorld(transformation_matrix)
-        self.pipeline.effect.vs.BindView(view)
+        self.pipeline.effect.vs.BindWorldView(transformation_matrix * view)
         self.pipeline.effect.vs.BindProjection(self.proj)
         self.pipeline.effect.ps.SetLightPosition((self.lpos.ToVec4(1.0) * view).ToVec3())
 
