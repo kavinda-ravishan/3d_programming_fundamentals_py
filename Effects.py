@@ -1,9 +1,8 @@
 from typing import Union, Generic
 # from math import sin, pow
 from math import pow
-# from Utils import VertexT, VertexArithmetic, Vec3, Vec2, Color, Triangle, Vec4, Mat4
-from Utils import VertexT, VertexArithmetic, Vec3, Color, Triangle, Vec4, Mat4
-# from Engine import Surface
+from Utils import VertexT, VertexArithmetic, Vec3, Vec2, Color, Triangle, Vec4, Mat4
+from Engine import Surface
 
 class DefaultGeometryShader(Generic[VertexT]):
     def __call__(self, in0: VertexT, in1: VertexT, in2: VertexT, triangle_index: int):
@@ -857,62 +856,62 @@ class SolidEffect(Generic[VertexT]):
         self.vs: DefaultVertexShader[VertexT] = DefaultVertexShader[VertexT]()
         self.gs: SolidEffect.GeometryShader = SolidEffect.GeometryShader()
 
-# class TextureEffect(Generic[VertexT]):
+class TextureEffect(Generic[VertexT]):
 
-#     class Vertex(VertexArithmetic):
-#         def __init__(self, pos: Vec4, t: Vec2):
-#             self.pos: Vec4 = pos
-#             self.t: Vec2 = t
+    class Vertex(VertexArithmetic):
+        def __init__(self, pos: Vec4, t: Vec2):
+            self.pos: Vec4 = pos
+            self.t: Vec2 = t
 
-#         def UpdatePos(self, pos: Vec4, src: "TextureEffect.Vertex"):
-#             return TextureEffect.Vertex(pos, src.t)
+        def UpdatePos(self, pos: Vec4, src: "TextureEffect.Vertex"):
+            return TextureEffect.Vertex(pos, src.t)
 
-#         def __add__(self, other: Union["TextureEffect.Vertex", float, int]):
-#             if isinstance(other, TextureEffect.Vertex):
-#                 return TextureEffect.Vertex(self.pos + other.pos, self.t + other.t)
-#             else:
-#                 return TextureEffect.Vertex(self.pos + other, self.t + other)
+        def __add__(self, other: Union["TextureEffect.Vertex", float, int]):
+            if isinstance(other, TextureEffect.Vertex):
+                return TextureEffect.Vertex(self.pos + other.pos, self.t + other.t)
+            else:
+                return TextureEffect.Vertex(self.pos + other, self.t + other)
 
-#         def __sub__(self, other: Union["TextureEffect.Vertex", float, int]):
-#             if isinstance(other, TextureEffect.Vertex):
-#                 return TextureEffect.Vertex(self.pos - other.pos, self.t - other.t)
-#             else:
-#                 return TextureEffect.Vertex(self.pos - other, self.t - other)
+        def __sub__(self, other: Union["TextureEffect.Vertex", float, int]):
+            if isinstance(other, TextureEffect.Vertex):
+                return TextureEffect.Vertex(self.pos - other.pos, self.t - other.t)
+            else:
+                return TextureEffect.Vertex(self.pos - other, self.t - other)
 
-#         def __mul__(self, other: Union["TextureEffect.Vertex", float, int]):
-#             if isinstance(other, TextureEffect.Vertex):
-#                 return TextureEffect.Vertex(self.pos * other.pos, self.t * other.t)
-#             else:
-#                 return TextureEffect.Vertex(self.pos * other, self.t * other)
+        def __mul__(self, other: Union["TextureEffect.Vertex", float, int]):
+            if isinstance(other, TextureEffect.Vertex):
+                return TextureEffect.Vertex(self.pos * other.pos, self.t * other.t)
+            else:
+                return TextureEffect.Vertex(self.pos * other, self.t * other)
 
-#         def __truediv__(self, other:Union["TextureEffect.Vertex", float, int]):
-#             if isinstance(other, TextureEffect.Vertex):
-#                 return TextureEffect.Vertex(self.pos / other.pos, self.t / other.t)
-#             else:
-#                 return TextureEffect.Vertex(self.pos / other, self.t / other)
+        def __truediv__(self, other:Union["TextureEffect.Vertex", float, int]):
+            if isinstance(other, TextureEffect.Vertex):
+                return TextureEffect.Vertex(self.pos / other.pos, self.t / other.t)
+            else:
+                return TextureEffect.Vertex(self.pos / other, self.t / other)
 
-#     class PixelShader:
-#         def __init__(self):
-#             self.texture: Surface = Surface(0, 0)
-#             self.tex_width: float = 0.0
-#             self.tex_height: float = 0.0
-#             self.tex_xclamp: float = 0.0
-#             self.tex_yclamp: float = 0.0
+    class PixelShader:
+        def __init__(self):
+            self.texture: Surface = Surface(0, 0)
+            self.tex_width: float = 0.0
+            self.tex_height: float = 0.0
+            self.tex_xclamp: float = 0.0
+            self.tex_yclamp: float = 0.0
 
-#         def __call__(self, input: "TextureEffect.Vertex") -> Color:
-#             return self.texture.GetPixel(
-#                 int(max(0, min(input.t.x * self.tex_width + 0.5, self.tex_xclamp))),
-#                 int(max(0, min(input.t.y * self.tex_height + 0.5, self.tex_yclamp)))
-#             )
+        def __call__(self, input: "TextureEffect.Vertex") -> Color:
+            return self.texture.GetPixel(
+                int(max(0, min(input.t.x * self.tex_width + 0.5, self.tex_xclamp))),
+                int(max(0, min(input.t.y * self.tex_height + 0.5, self.tex_yclamp)))
+            )
 
-#         def BindTexture(self, filename: str):
-#             self.texture = Surface.FromFile(filename)
-#             self.tex_width = float(self.texture.GetWidth())
-#             self.tex_height = float(self.texture.GetHeight())
-#             self.tex_xclamp = self.tex_width - 1.0
-#             self.tex_yclamp = self.tex_height - 1.0
+        def BindTexture(self, filename: str):
+            self.texture = Surface.FromFile(filename)
+            self.tex_width = float(self.texture.GetWidth())
+            self.tex_height = float(self.texture.GetHeight())
+            self.tex_xclamp = self.tex_width - 1.0
+            self.tex_yclamp = self.tex_height - 1.0
 
-#     def __init__(self):
-#         self.ps: TextureEffect.PixelShader = TextureEffect.PixelShader()
-#         self.vs: DefaultVertexShader[VertexT] = DefaultVertexShader[VertexT]()
-#         self.gs: DefaultGeometryShader[VertexT] = DefaultGeometryShader[VertexT]()
+    def __init__(self):
+        self.ps: TextureEffect.PixelShader = TextureEffect.PixelShader()
+        self.vs: DefaultVertexShader[VertexT] = DefaultVertexShader[VertexT]()
+        self.gs: DefaultGeometryShader[VertexT] = DefaultGeometryShader[VertexT]()

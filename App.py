@@ -1,7 +1,7 @@
 from Engine import Game
 # from SceneVertexPositionColorCube import SceneVertexPositionColorCube
-# from SceneSolidCubes import SceneSolidCubes
-# from SceneTextureCube import SceneTextureCube
+from SceneSolidCubes import SceneSolidCubes
+from SceneTextureCube import SceneTextureCube
 # from SceneFlatIndependentCube import SceneFlatIndependentCube
 # from SceneWaveVertexTexture import SceneWaveVertexTexture
 # from SceneGouraud import SceneGouraud
@@ -24,8 +24,8 @@ if '__main__' == __name__:
             # SceneWaveVertexTexture(), 
             # SceneFlatIndependentCube(), 
             # SceneVertexPositionColorCube(), 
-            # SceneSolidCubes(), 
-            # SceneTextureCube()
+            SceneSolidCubes(), 
+            SceneTextureCube()
         ]
     )
     

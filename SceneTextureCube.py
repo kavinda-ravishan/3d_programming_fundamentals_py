@@ -1,6 +1,6 @@
 from typing import Union, Final
 from math import pi
-from Utils import Vec2, Mat4, WrapAngle
+from Utils import Vec2, Vec3, Mat4, WrapAngle
 from Engine import Pipeline, Scene
 from Models import Cube
 from Effects import TextureEffect
@@ -11,8 +11,16 @@ class SceneTextureCube(Scene):
         self.it_list = Cube.GetSkinned(
             lambda vertices, texture_coordinates: [TextureEffect.Vertex(position.ToVec4(), texture_coordinates[i]) for i, position in enumerate(vertices)]
         )
+
+        self.proj: Final[Mat4] = Mat4.ProjectionHFOV(100.0, 1.33333, 1.0, 10.0)
+
         self.d_thete: Final[float] = pi
-        self.offset_z: float = 2.0
+
+        self.cam_rot_inv: Mat4 = Mat4.Identity()
+        self.cam_pos: Vec3 = Vec3(0.0, 0.0, 0.0)
+
+        self.mod_pos: Vec3 = Vec3(0.0, 0.0, 2.2)
+        
         self.theta_x: float = 0.0
         self.theta_y: float = 0.0
         self.theta_z: float = 0.0
@@ -41,9 +49,9 @@ class SceneTextureCube(Scene):
         elif 'd' == key:
             self.theta_z = WrapAngle(self.theta_z - (self.d_thete * dt))
         elif 'r' == key:
-            self.offset_z += (2.0 * dt)
+            self.mod_pos.z += (self.d_thete * dt)
         elif 'f' == key:
-            self.offset_z -= (2.0 * dt)
+            self.mod_pos.z -= (self.d_thete * dt)
 
     def Draw(self):
         if not hasattr(self, 'gfx'): return
@@ -51,11 +59,15 @@ class SceneTextureCube(Scene):
 
         self.pipeline.BeginFrame()
 
+        # camera
+        view: Final[Mat4] = Mat4.TranslationVec(-self.cam_pos) * self.cam_rot_inv
+
         rotation_matrix: Final[Mat4] = Mat4.RotationX(self.theta_x) * Mat4.RotationY(self.theta_y) * Mat4.RotationZ(self.theta_z)
-        translation: Final[Mat4] = Mat4.Translation(0.0, 0.0, self.offset_z)
+        translation: Final[Mat4] = Mat4.TranslationVec(self.mod_pos)
     
     	# set pipeline transform
-        self.pipeline.effect.vs.BindTransformation(rotation_matrix * translation)
+        self.pipeline.effect.vs.BindWorldView(rotation_matrix * translation * view)
+        self.pipeline.effect.vs.BindProjection(self.proj)
 
         self.pipeline.Draw(self.it_list)
     

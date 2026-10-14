@@ -17,7 +17,7 @@ class SceneSpecularPhongPoint(Scene):
         )
 
         # self.proj: Final[Mat4] = Mat4.Projection(2.6666666, 2.0, 1.0, 10.0)
-        self.proj = Mat4.ProjectionHFOV(100.0, 1.33333, 1.0, 10.0)
+        self.proj: Final[Mat4] = Mat4.ProjectionHFOV(100.0, 1.33333, 1.0, 10.0)
         
         self.d_thete: Final[float] = pi
         self.d_speed: Final[float] = 2.0
