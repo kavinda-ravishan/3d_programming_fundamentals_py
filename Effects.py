@@ -11,24 +11,24 @@ class DefaultGeometryShader(Generic[VertexT]):
 
 class DefaultVertexShader(Generic[VertexT]):
     def __init__(self):
-            self.world: Mat4 = Mat4().Identity()
+            self.world_view: Mat4 = Mat4().Identity()
             self.proj: Mat4 = Mat4().Identity()
-            self.world_proj: Mat4 = Mat4().Identity()
+            self.world_view_proj: Mat4 = Mat4().Identity()
 
-    def BindWorld(self, transformation: Mat4):
-        self.world = transformation
-        self.world_proj = self.world * self.proj
+    def BindWorldView(self, transformation: Mat4):
+        self.world_view = transformation
+        self.world_view_proj = self.world_view * self.proj
 
     def BindProjection(self, transformation: Mat4):
         self.proj = transformation
-        self.world_proj = self.world * self.proj
+        self.world_view_proj = self.world_view * self.proj
 
     def GetProj(self):
         return self.proj
 
     def __call__(self, input: VertexT):
             # transform vertices using matrix + vector
-            return input.UpdatePos(input.pos * self.world_proj, input)
+            return input.UpdatePos(input.pos * self.world_view_proj, input)
 
 class SceneSpecularPhongPointEffect(Generic[VertexT]):
     class Vertex(VertexArithmetic):
@@ -99,16 +99,24 @@ class SceneSpecularPhongPointEffect(Generic[VertexT]):
     class VertexShader:
         def __init__(self):
             self.world: Mat4 = Mat4().Identity()
+            self.view: Mat4 = Mat4().Identity()
             self.proj: Mat4 = Mat4().Identity()
-            self.world_proj: Mat4 = Mat4().Identity()
+            self.world_view: Mat4 = Mat4().Identity()
+            self.world_view_proj: Mat4 = Mat4().Identity()
 
         def BindWorld(self, transformation: Mat4):
             self.world = transformation
-            self.world_proj = self.world * self.proj
+            self.world_view = self.world * self.view 
+            self.world_view_proj = self.world_view * self.proj 
+
+        def BindView(self, transformation: Mat4):
+            self.view = transformation
+            self.world_view = self.world * self.view 
+            self.world_view_proj = self.world_view * self.proj 
 
         def BindProjection(self, transformation: Mat4):
             self.proj = transformation
-            self.world_proj = self.world * self.proj
+            self.world_view_proj = self.world_view * self.proj
 
         def GetProj(self):
             return self.proj
@@ -117,9 +125,11 @@ class SceneSpecularPhongPointEffect(Generic[VertexT]):
             self.light_pos = pos
 
         def __call__(self, input: SceneSpecularPhongPointEffect.Vertex) -> SceneSpecularPhongPointEffect.VSOut:
-            n = Vec4(input.n.x, input.n.y, input.n.z, 0.0) * self.world
-
-            return SceneSpecularPhongPointEffect.VSOut(input.pos * self.world_proj, n.ToVec3(), (input.pos * self.world).ToVec3())
+            return SceneSpecularPhongPointEffect.VSOut(
+                input.pos * self.world_view_proj, 
+                (input.n.ToVec4(0.0) * self.world_view).ToVec3(), 
+                (input.pos * self.world_view).ToVec3()
+            )
 
     class PixelShader:
         def __init__(self):

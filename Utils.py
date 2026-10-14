@@ -301,6 +301,15 @@ class Mat3:
             raise ValueError("Each row must have exactly 3 elements")
         self.mat[idx] = value
 
+    def Inv(self):
+        new_mat = Mat4()
+
+        for j in range(3):
+            for k in range(3):
+                new_mat.mat[j][k] = self.mat[k][j]
+
+        return new_mat
+
     def ScalerMul(self, scaler: Union[int, float]):
         new_mat = Mat3()
         for r, row in enumerate(self.mat):
@@ -399,7 +408,7 @@ class Mat4:
         self.mat: list[list[Union[int, float]]] = [list(row) for row in mat]
 
     def __repr__(self) -> str:
-        return f"Mat4([\n  {self.mat[0]},\n  {self.mat[1]}\n  {self.mat[2]} {self.mat[3]}\n])"
+        return f"Mat4([\n  {self.mat[0]},\n  {self.mat[1]},\n  {self.mat[2]},\n {self.mat[3]}\n])"
 
     def __getitem__(self, idx: int) -> list[Union[int, float]]:
         """Allow access like mat[row][col]."""
@@ -410,6 +419,15 @@ class Mat4:
         if len(value) != 4:
             raise ValueError("Each row must have exactly 4 elements")
         self.mat[idx] = value
+
+    def Inv(self):
+        new_mat = Mat4()
+
+        for j in range(4):
+            for k in range(4):
+                new_mat.mat[j][k] = self.mat[k][j]
+
+        return new_mat
 
     def ScalerMul(self, scaler: Union[int, float]):
         new_mat = Mat4()
